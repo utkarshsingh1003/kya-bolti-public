@@ -34,13 +34,13 @@ Set in Project → Settings → Environment Variables (or via CLI):
 
 ```
 NEXT_PUBLIC_SITE_URL=https://kyaboltipublic.in
-DATABASE_URL=<postgres connection string>   # optional; without it app runs in-memory storage
+DATABASE_URL=<postgres connection string>   # required for persistent storage; e.g. Supabase PostgreSQL
 ADMIN_PASSWORD=<strong password>
 ADMIN_SESSION_SECRET=<long random secret>
 CRON_SECRET=<long random secret>
 ```
 
-Without `DATABASE_URL`, the Vercel deployment uses serverless in-memory storage (data does not persist across invocations) — this must be disclosed to users.
+Without `DATABASE_URL`, the Vercel deployment uses serverless in-memory storage (data does not persist across invocations) — this must be disclosed to users. **As of the current code, a production deployment without `DATABASE_URL` will refuse to serve storage-backed content and returns a clear storage error instead of silently using in-memory storage.**
 
 ### vercel.json
 

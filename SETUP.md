@@ -43,6 +43,44 @@ openssl rand -hex 16      # ADMIN_PASSWORD alternative
 
 **Never commit `.env`, `.env.local`, or any file containing real secrets.**
 
+## Persistent storage (required for production)
+
+The app supports two backends through `lib/store`:
+
+- **PostgreSQL** (preferred, required for production persistence) — selected when `DATABASE_URL` is set.
+- **JSON file** — selected for local development (path from `KBP_DATA_DIR`, default `.data/store.json`).
+
+On Vercel serverless without a database, the app now **refuses to silently fall back to in-memory storage** and returns a clear storage error; set `DATABASE_URL` to enable persistence.
+
+### Supabase PostgreSQL setup
+
+1. Create a Supabase project (free tier is sufficient) at https://supabase.com.
+2. In the Supabase dashboard: **Project Settings → Database → Connection string** (choose the direct/db connection URI; the pooled connection string also works with `pg`).
+3. Copy the connection string. It looks like:
+   `postgresql://postgres:<password>@db.<project-ref>.supabase.co:5432/postgres`
+4. Set it as an environment variable (locally in `.env.local`, in Vercel in Project → Settings → Environment Variables):
+   ```
+   DATABASE_URL=postgresql://postgres:<password>@db.<project-ref>.supabase.co:5432/postgres
+   ```
+5. Redeploy the app after adding the variable.
+6. Apply the schema:
+   ```
+   npm run db:migrate
+   ```
+   (Applies `db/migrations/001_init.sql` transactionally with `schema_migrations` tracking. It uses `create table if not exists` and conflict-aware inserts, so it is safe to re-run.)
+
+### Environment variables for persistent production storage
+
+| Variable | Required for | Purpose |
+| --- | --- | --- |
+| `DATABASE_URL` | Yes (production) | PostgreSQL connection string (Supabase). Enables Postgres repository. |
+| `NEXT_PUBLIC_SITE_URL` | No | Canonical/OG URL. |
+| `KBP_DATA_DIR` | No | JSON file store location (local dev). |
+| `KBP_DISABLE_LIVE_NEWS` | No | Force demo news mode. |
+| `KBP_FILE_STORE` | No | Force file store backend. |
+| `ADMIN_PASSWORD` / `ADMIN_SESSION_SECRET` | Yes for admin | Admin auth. |
+| `CRON_SECRET` | Yes for cron | News refresh cron secret. |
+
 ## Run locally
 
 ```bash
@@ -58,6 +96,8 @@ npm run db:migrate   # requires DATABASE_URL
 ```
 
 Migrations live in `db/migrations/`. The JSON file store is used automatically when `DATABASE_URL` is unset (data persists in `.data/store.json` locally; on Vercel serverless it runs in-memory mode and must be disclosed).
+
+> **Production:** set `DATABASE_URL` (e.g. Supabase PostgreSQL) before going live. Without it, the deployed app now returns a clear storage error instead of silently using in-memory storage.
 
 ## Admin bootstrap
 

@@ -168,6 +168,12 @@ class JsonRepository implements Repository {
       fs.mkdirSync(path.dirname(this.filePath), { recursive: true });
       fs.writeFileSync(this.filePath, JSON.stringify(this.db, null, 2), { mode: 0o600 });
     } catch {
+      if (process.env.NODE_ENV === "production") {
+        // Never silently degrade to in-memory storage in production.
+        throw new Error(
+          "KBP storage error: unable to persist data to the configured file store in production. Set DATABASE_URL to a PostgreSQL database (for example Supabase) or configure KBP_FILE_STORE. Refusing to fall back to in-memory storage in production.",
+        );
+      }
       // Read-only filesystem (e.g. serverless): stay in memory for this instance.
       this.mode = "memory";
       this.filePath = null;
@@ -495,7 +501,15 @@ let repository: Repository | null = null;
 
 function createJsonRepository(): JsonRepository {
   const isServerless = Boolean(process.env.VERCEL) && !process.env.KBP_FILE_STORE;
-  if (isServerless) return new JsonRepository(null, "memory");
+  if (isServerless) {
+    // In production, serverless deployments must not silently degrade to memory.
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(
+        "KBP storage error: no persistent database is configured on this production deployment (DATABASE_URL is not set and KBP_FILE_STORE is not set). Set DATABASE_URL to a PostgreSQL database such as Supabase, or configure KBP_FILE_STORE. Refusing to silently use in-memory storage in production.",
+      );
+    }
+    return new JsonRepository(null, "memory");
+  }
   const file = path.join(process.env.KBP_DATA_DIR || ".data", "store.json");
   return new JsonRepository(path.resolve(process.cwd(), file), "file");
 }
