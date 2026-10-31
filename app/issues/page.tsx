@@ -1,0 +1,32 @@
+import type { Metadata } from "next";
+import { PageHeader } from "@/components/ui";
+import { IssuesExplorer } from "@/components/issues-explorer";
+import { getRepository } from "@/lib/store";
+
+export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "नागरिक समस्याएँ",
+  description: "स्थानीय सड़क, पानी, सफ़ाई, बिजली और स्ट्रीटलाइट की समस्याएँ दर्ज करें और ट्रैकिंग कोड से स्थिति देखें।",
+  alternates: { canonical: "/issues" },
+};
+
+export default async function IssuesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ code?: string }>;
+}) {
+  const params = await searchParams;
+  const repo = await getRepository();
+  const issues = await repo.listIssues({ limit: 60 });
+  return (
+    <>
+      <PageHeader
+        eyebrow="इलाके की समस्याएँ"
+        title="नागरिक समस्याएँ"
+        description="अपने इलाके की समस्या दर्ज करें, ट्रैकिंग कोड पाएँ और स्थिति देखें। यह स्थानीय रिकॉर्ड है — आधिकारिक शिकायत पोर्टल पर भी शिकायत दर्ज करें।"
+      />
+      <IssuesExplorer initialIssues={issues} initialCode={params.code?.toUpperCase()} />
+    </>
+  );
+}

@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="hi">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      @font-face {
+        font-family: "Noto";
+        src: url("file:///Users/utkarshsingh/Desktop/kya-bolti-public/public/fonts/noto-devanagari.woff2") format("woff2");
+        font-weight: 400 800;
+      }
+      @font-face {
+        font-family: "Inter";
+        src: url("file:///Users/utkarshsingh/Desktop/kya-bolti-public/public/fonts/inter-latin.woff2") format("woff2");
+        font-weight: 400 800;
+      }
+      * { box-sizing: border-box; margin: 0; }
+      body {
+        width: 1200px; height: 630px; overflow: hidden;
+        background: #061528;
+        font-family: "Inter", "Noto", sans-serif;
+        color: #fff;
+        position: relative;
+      }
+      .glow {
+        position: absolute; width: 760px; height: 760px; border-radius: 50%;
+        background: radial-gradient(circle, rgba(242,106,33,0.42) 0%, rgba(242,106,33,0.08) 45%, transparent 70%);
+        right: -170px; top: -260px;
+      }
+      .grid {
+        position: absolute; inset: 0;
+        background-image: linear-gradient(rgba(255,255,255,0.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px);
+        background-size: 56px 56px;
+        mask-image: linear-gradient(to bottom, black, transparent 85%);
+      }
+      .wrap { position: relative; padding: 58px 68px; height: 100%; display: flex; flex-direction: column; }
+      .top { display: flex; align-items: center; gap: 18px; }
+      .mark { width: 72px; height: 72px; border-radius: 18px; }
+      .brand-name { font-family: "Noto"; font-size: 30px; font-weight: 800; letter-spacing: -0.4px; }
+      .brand-name span { color: #FF8847; font-family: "Inter"; letter-spacing: 1px; }
+      .tag { font-family: "Noto"; font-size: 13px; color: #B9C8DE; letter-spacing: 2.6px; margin-top: 5px; font-weight: 600; }
+      .badge { margin-left: auto; border: 1px solid rgba(255,255,255,0.2); border-radius: 100px; padding: 9px 18px; font-size: 14px; color: #D6E0EE; font-weight: 600; }
+      h1 { font-family: "Noto"; font-size: 76px; line-height: 1.12; letter-spacing: -1.6px; font-weight: 800; margin-top: 66px; max-width: 880px; }
+      h1 em { font-style: normal; color: #FF7A33; }
+      .sub { margin-top: 22px; font-family: "Noto"; font-size: 23px; line-height: 1.5; color: #C9D6E7; max-width: 760px; }
+      .chips { margin-top: auto; display: flex; gap: 12px; }
+      .chip { border-radius: 100px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.14); padding: 11px 20px; font-size: 16px; font-weight: 600; color: #E8EEF7; font-family: "Noto"; }
+      .bottom { display: flex; justify-content: space-between; align-items: center; margin-top: 26px; }
+      .domain { font-family: "Inter"; font-size: 20px; font-weight: 700; color: #FF9A60; letter-spacing: 0.2px; }
+      .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #2DD4A7; margin-right: 8px; }
+      .note { font-size: 15px; color: #8FA4C0; font-family: "Noto"; }
+    </style>
+  </head>
+  <body>
+    <div class="glow"></div>
+    <div class="grid"></div>
+    <div class="wrap">
+      <div class="top">
+        <svg class="mark" viewBox="0 0 64 64">
+          <rect width="64" height="64" rx="16" fill="#12294A" />
+          <path d="M13 17.5A5.5 5.5 0 0 1 18.5 12h27a5.5 5.5 0 0 1 5.5 5.5v20a5.5 5.5 0 0 1-5.5 5.5H30.8L21 51v-8h-2.5A5.5 5.5 0 0 1 13 37.5v-20Z" fill="#F26A21"/>
+          <rect x="21" y="23" width="4.4" height="11" rx="2.2" fill="#0A1F3A"/>
+          <rect x="29.8" y="18.5" width="4.4" height="20" rx="2.2" fill="#0A1F3A"/>
+          <rect x="38.6" y="25.5" width="4.4" height="8" rx="2.2" fill="#0A1F3A"/>
+          <circle cx="47.5" cy="15.5" r="4.5" fill="#E9B949"/>
+        </svg>
+        <div>
+          <div class="brand-name">क्या बोलती <span>PUBLIC</span></div>
+          <div class="tag">जनता की बात, सबकी आवाज़</div>
+        </div>
+        <div class="badge">हिंदी-पहले · नागरिक मंच</div>
+      </div>
+      <h1>अपने इलाके की खबर,<br /><em>अपनी आवाज़।</em></h1>
+      <p class="sub">जनप्रतिनिधि, नागरिक पोल, सरकारी योजनाएँ और स्थानीय मुद्दे — सरल भाषा में, स्रोत के साथ।</p>
+      <div class="chips">
+        <div class="chip">स्थानीय खबरें</div>
+        <div class="chip">जनप्रतिनिधि</div>
+        <div class="chip">नागरिक पोल</div>
+        <div class="chip">मुफ़्त क्विज़</div>
+      </div>
+      <div class="bottom">
+        <div class="domain"><span class="dot"></span>kyaboltipublic.in</div>
+        <div class="note">स्वतंत्र · गैर-राजनीतिक · स्रोत-आधारित</div>
+      </div>
+    </div>
+  </body>
+</html>

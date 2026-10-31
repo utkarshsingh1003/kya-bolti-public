@@ -1,0 +1,200 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url("/fonts/inter-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Noto Sans Devanagari";
+  font-style: normal;
+  font-weight: 400 800;
+  font-display: swap;
+  src: url("/fonts/noto-devanagari.woff2") format("woff2");
+  unicode-range: U+0900-097F, U+1CD0-1CF9, U+200C-200D, U+20A8, U+20B9, U+25CC, U+A830-A839, U+A8E0-A8FF;
+}
+
+@theme {
+  --font-sans: "Inter", "Noto Sans Devanagari", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-hindi: "Noto Sans Devanagari", "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  --color-brand-50: #fff6ee;
+  --color-brand-100: #ffe9d6;
+  --color-brand-200: #ffd0ab;
+  --color-brand-300: #ffae74;
+  --color-brand-400: #fd8840;
+  --color-brand-500: #f26a21;
+  --color-brand-600: #de500d;
+  --color-brand-700: #b83c0b;
+  --color-brand-800: #923210;
+  --color-brand-900: #762c11;
+
+  --color-navy-50: #f3f6fb;
+  --color-navy-100: #e4ebf5;
+  --color-navy-200: #c7d5e8;
+  --color-navy-300: #9db4d2;
+  --color-navy-400: #6c8cb6;
+  --color-navy-500: #4b6b98;
+  --color-navy-600: #39537b;
+  --color-navy-700: #2e4263;
+  --color-navy-800: #142b4c;
+  --color-navy-900: #0a1f3a;
+  --color-navy-950: #061528;
+
+  --color-teal-50: #eefaf6;
+  --color-teal-100: #d3f2e9;
+  --color-teal-500: #0e7c6b;
+  --color-teal-600: #0a6557;
+  --color-teal-700: #0a5046;
+
+  --color-gold-100: #fdf1cf;
+  --color-gold-400: #e9b949;
+  --color-gold-500: #d9a52c;
+
+  --color-cream: #fffaf3;
+  --shadow-card: 0 1px 2px rgb(10 31 58 / 0.04), 0 12px 32px -18px rgb(10 31 58 / 0.28);
+  --shadow-float: 0 18px 48px -20px rgb(10 31 58 / 0.42);
+  --radius-2xl: 1.25rem;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--color-cream);
+  color: var(--color-navy-900);
+  font-family: var(--font-sans);
+  font-feature-settings: "kern" 1, "liga" 1;
+  text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: var(--color-brand-200);
+  color: var(--color-navy-950);
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-brand-500);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+@layer components {
+  .container-page {
+    width: 100%;
+    max-width: 80rem;
+    margin-inline: auto;
+    padding-inline: 1rem;
+  }
+  @media (min-width: 640px) {
+    .container-page {
+      padding-inline: 1.5rem;
+    }
+  }
+  @media (min-width: 1024px) {
+    .container-page {
+      padding-inline: 2rem;
+    }
+  }
+
+  .surface {
+    background: #fff;
+    border: 1px solid var(--color-navy-100);
+    border-radius: 1.25rem;
+    box-shadow: var(--shadow-card);
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .hide-scrollbar {
+    scrollbar-width: none;
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .hindi {
+    font-family: var(--font-hindi);
+  }
+
+  .grain {
+    background-image: radial-gradient(rgb(10 31 58 / 0.055) 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+
+  .prose-civic p {
+    margin-block: 0.85rem;
+    line-height: 1.8;
+  }
+  .prose-civic h2 {
+    margin-top: 2rem;
+    margin-bottom: 0.5rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+  }
+  .prose-civic ul {
+    margin-block: 0.75rem;
+    padding-inline-start: 1.25rem;
+    list-style: disc;
+    line-height: 1.8;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes soft-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.animate-fade-up-delay {
+  animation: fade-up 0.8s 0.12s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.animate-soft-pulse {
+  animation: soft-pulse 3.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Native dialog spacing reset */
+dialog::backdrop {
+  background: rgb(6 21 40 / 0.55);
+  backdrop-filter: blur(2px);
+}

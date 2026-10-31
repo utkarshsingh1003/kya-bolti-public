@@ -1,0 +1,287 @@
+import type {
+  CivicIssue,
+  Poll,
+  Question,
+  Reply,
+  Review,
+  Thread,
+} from "@/lib/types";
+
+export const demoPolls: Poll[] = [
+  {
+    id: "poll-local-priority",
+    question: {
+      hi: "आपके इलाके में सबसे ज़रूरी नागरिक मुद्दा कौन-सा है?",
+      en: "Which civic issue matters most in your area?",
+    },
+    description: {
+      hi: "यह एक सामुदायिक, गैर-आधिकारिक पोल है। इसका उद्देश्य स्थानीय प्राथमिकताओं पर बातचीत शुरू करना है।",
+      en: "This is a community, unofficial poll meant to start a conversation about local priorities.",
+    },
+    category: "civic",
+    closesAt: "2027-06-30T18:29:59.000Z",
+    isDemo: true,
+    createdAt: "2026-10-01T06:00:00.000Z",
+    options: [
+      { id: "roads", label: { hi: "सड़क और गड्ढे", en: "Roads and potholes" } },
+      { id: "water", label: { hi: "पानी की आपूर्ति", en: "Water supply" } },
+      { id: "sanitation", label: { hi: "सफ़ाई और कचरा", en: "Sanitation and waste" } },
+      { id: "power", label: { hi: "बिजली और स्ट्रीटलाइट", en: "Electricity and streetlights" } },
+    ],
+  },
+  {
+    id: "poll-councillor-contact",
+    question: {
+      hi: "क्या आपको अपने वार्ड के पार्षद का संपर्क पता है?",
+      en: "Do you know how to contact your ward councillor?",
+    },
+    description: {
+      hi: "यह पोल जानने के लिए है कि स्थानीय प्रतिनिधि की जानकारी कितनी सुलभ है। यह कोई सरकारी सर्वेक्षण नहीं है।",
+      en: "This poll explores how accessible local representative information is. It is not a government survey.",
+    },
+    category: "awareness",
+    closesAt: "2027-06-30T18:29:59.000Z",
+    isDemo: true,
+    createdAt: "2026-10-05T06:00:00.000Z",
+    options: [
+      { id: "yes", label: { hi: "हाँ, पता है", en: "Yes, I know" } },
+      { id: "no", label: { hi: "नहीं, पता नहीं", en: "No, I don't" } },
+      { id: "partial", label: { hi: "कुछ हद तक", en: "Somewhat" } },
+    ],
+  },
+  {
+    id: "poll-service-quality",
+    question: {
+      hi: "अपने इलाके की नगरपालिका सेवाओं को आप कैसा आँकेंगे?",
+      en: "How would you rate municipal services in your area?",
+    },
+    description: {
+      hi: "अपने अनुभव के आधार पर जवाब दें। यह पोल वैज्ञानिक नमूना नहीं है और चुनाव पूर्वानुमान नहीं है।",
+      en: "Answer from your own experience. This poll is not a scientific sample or an election forecast.",
+    },
+    category: "services",
+    closesAt: "2027-06-30T18:29:59.000Z",
+    isDemo: true,
+    createdAt: "2026-10-10T06:00:00.000Z",
+    options: [
+      { id: "good", label: { hi: "अच्छी", en: "Good" } },
+      { id: "average", label: { hi: "औसत", en: "Average" } },
+      { id: "poor", label: { hi: "खराब", en: "Poor" } },
+      { id: "no-experience", label: { hi: "कोई अनुभव नहीं", en: "No experience" } },
+    ],
+  },
+];
+
+export const demoIssues: CivicIssue[] = [
+  {
+    id: "issue-demo-1",
+    trackingCode: "KBP-DEMO01",
+    category: "roads",
+    title: "मुख्य मार्ग पर गहरे गड्ढे, बारिश में पानी भर जाता है",
+    description:
+      "उदाहरण प्रविष्टि: बाज़ार के पास मुख्य सड़क पर कई गड्ढे हैं। स्थानीय निवासी इन्हें भरने का अनुरोध कर रहे हैं।",
+    area: "बाज़ार रोड, वार्ड 12",
+    districtId: "up-lucknow",
+    stateId: "up",
+    pin: "226001",
+    status: "under_review",
+    isDemo: true,
+    createdAt: "2026-10-12T08:00:00.000Z",
+    updatedAt: "2026-10-14T09:30:00.000Z",
+    officialComplaintUrl: "https://jansunwai.up.nic.in/",
+    events: [
+      { status: "submitted", note: "समस्या दर्ज हुई (डेमो)।", createdAt: "2026-10-12T08:00:00.000Z" },
+      { status: "under_review", note: "विवरण की समीक्षा जारी है (डेमो)।", createdAt: "2026-10-14T09:30:00.000Z" },
+    ],
+  },
+  {
+    id: "issue-demo-2",
+    trackingCode: "KBP-DEMO02",
+    category: "water",
+    title: "मोहल्ले में जलापूर्ति का समय तय नहीं",
+    description:
+      "उदाहरण प्रविष्टि: सुबह के समय पानी अनियमित आता है और दबाव कम रहता है। निवासियों ने समय-सारणी की मांग की है।",
+    area: "गांधी नगर",
+    districtId: "bihar-patna",
+    stateId: "bihar",
+    pin: "800001",
+    status: "verified",
+    isDemo: true,
+    createdAt: "2026-10-15T07:00:00.000Z",
+    updatedAt: "2026-10-18T10:00:00.000Z",
+    officialComplaintUrl: "https://biharjalapurti.in/",
+    events: [
+      { status: "submitted", note: "समस्या दर्ज हुई (डेमो)।", createdAt: "2026-10-15T07:00:00.000Z" },
+      { status: "verified", note: "स्थानीय विवरण की पुष्टि की गई (डेमो)।", createdAt: "2026-10-18T10:00:00.000Z" },
+    ],
+  },
+  {
+    id: "issue-demo-3",
+    trackingCode: "KBP-DEMO03",
+    category: "streetlights",
+    title: "पार्क के पास स्ट्रीटलाइट कई दिनों से बंद",
+    description:
+      "उदाहरण प्रविष्टि: शाम के बाद रास्ता अंधेरा रहता है। नगर निगम को सूचना देने का अनुरोध किया गया है।",
+    area: "पार्क रोड, वार्ड 5",
+    districtId: "up-varanasi",
+    stateId: "up",
+    pin: "221001",
+    status: "forwarded",
+    isDemo: true,
+    createdAt: "2026-10-20T08:00:00.000Z",
+    updatedAt: "2026-10-21T12:00:00.000Z",
+    officialComplaintUrl: "https://jansunwai.up.nic.in/",
+    events: [
+      { status: "submitted", note: "समस्या दर्ज हुई (डेमो)।", createdAt: "2026-10-20T08:00:00.000Z" },
+      { status: "forwarded", note: "उदाहरण: जानकारी संबंधित अधिकारी तक पहुँचाई गई (डेमो, कोई वास्तविक शिकायत नहीं)।", createdAt: "2026-10-21T12:00:00.000Z" },
+    ],
+  },
+];
+
+export const demoReviews: Review[] = [
+  {
+    id: "review-demo-1",
+    serviceCategory: "sanitation",
+    rating: 3,
+    title: "कचरा गाड़ी समय पर नहीं आती",
+    body: "हफ़्ते में दो दिन कचरा नहीं उठता। शिकायत करने पर कुछ सुधार हुआ, लेकिन नियमितता नहीं है। यह मेरा व्यक्तिगत अनुभव है।",
+    area: "हज़रतगंज",
+    districtId: "up-lucknow",
+    stateId: "up",
+    displayName: "नागरिक",
+    status: "published",
+    isDemo: true,
+    createdAt: "2026-10-16T09:00:00.000Z",
+  },
+  {
+    id: "review-demo-2",
+    serviceCategory: "water",
+    rating: 2,
+    title: "पानी की गुणवत्ता में सुधार चाहिए",
+    body: "कभी-कभी पानी में रंग आता है। कृपया नियमित जाँच की जानकारी सार्वजनिक की जाए। यह केवल मेरा अनुभव है।",
+    area: "कंकड़बाग",
+    districtId: "bihar-patna",
+    stateId: "bihar",
+    displayName: null,
+    status: "published",
+    isDemo: true,
+    createdAt: "2026-10-17T10:00:00.000Z",
+  },
+];
+
+export const demoThreads: Thread[] = [
+  {
+    id: "thread-demo-1",
+    title: "मोहल्ले में कचरा अलग करने की व्यवस्था कैसे शुरू हो?",
+    body: "हमारे वार्ड में गीला और सूखा कचरा अलग नहीं होता। क्या किसी ने नगर निगम से अलग कलेक्शन शुरू कराया है? अनुभव और आधिकारिक संपर्क साझा करें।",
+    category: "sanitation",
+    districtId: "up-lucknow",
+    stateId: "up",
+    authorAlias: "जागरूक नागरिक",
+    isDemo: true,
+    createdAt: "2026-10-18T06:30:00.000Z",
+    replyCount: 2,
+    status: "published",
+  },
+  {
+    id: "thread-demo-2",
+    title: "स्ट्रीटलाइट की शिकायत कहाँ दर्ज करें?",
+    body: "शहर में स्ट्रीटलाइट बंद होने पर नगर निगम के अलावा कौन-सा पोर्टल उपयोगी है? कृपया आधिकारिक लिंक के साथ बताएँ।",
+    category: "streetlights",
+    districtId: "bihar-patna",
+    stateId: "bihar",
+    authorAlias: "पटना निवासी",
+    isDemo: true,
+    createdAt: "2026-10-19T11:00:00.000Z",
+    replyCount: 1,
+    status: "published",
+  },
+  {
+    id: "thread-demo-3",
+    title: "मतदाता सूची में नाम जोड़ने का सही तरीका",
+    body: "नए मतदाता के लिए Form 6 कहाँ से भरें और किन दस्तावेज़ों की ज़रूरत होती है? आधिकारिक पोर्टल का लिंक साझा करें।",
+    category: "voting",
+    districtId: "up-varanasi",
+    stateId: "up",
+    authorAlias: "नया मतदाता",
+    isDemo: true,
+    createdAt: "2026-10-20T05:00:00.000Z",
+    replyCount: 0,
+    status: "published",
+  },
+];
+
+export const demoReplies: Reply[] = [
+  {
+    id: "reply-demo-1",
+    threadId: "thread-demo-1",
+    body: "नगर निगम की सफ़ाई हेल्पलाइन पर शिकायत दर्ज करें और वार्ड पार्षद को लिखित अनुरोध दें। साथ में फोटो और तारीख रखें।",
+    authorAlias: "सहायक नागरिक",
+    isDemo: true,
+    createdAt: "2026-10-18T08:00:00.000Z",
+    status: "published",
+  },
+  {
+    id: "reply-demo-2",
+    threadId: "thread-demo-1",
+    body: "सोसाइटी स्तर पर कम्पोस्ट बिन से शुरुआत की जा सकती है। लेकिन नगर निगम का अलग कलेक्शन तभी काम करेगा जब पूरे वार्ड में लागू हो।",
+    authorAlias: "स्थानीय निवासी",
+    isDemo: true,
+    createdAt: "2026-10-18T12:00:00.000Z",
+    status: "published",
+  },
+  {
+    id: "reply-demo-3",
+    threadId: "thread-demo-2",
+    body: "अपने नगर निगम की आधिकारिक वेबसाइट पर ‘लाइट/स्ट्रीटलाइट’ शिकायत श्रेणी देखें। शिकायत संख्या सहेजकर रखें।",
+    authorAlias: "नागरिक मित्र",
+    isDemo: true,
+    createdAt: "2026-10-19T13:00:00.000Z",
+    status: "published",
+  },
+];
+
+export const demoQuestions: Question[] = [
+  {
+    id: "qa-demo-1",
+    question: "पानी की शिकायत कहाँ दर्ज करें?",
+    answer:
+      "शहरी क्षेत्र में अपने नगरीय निकाय (नगर निगम/नगर पालिका) की जल विभाग शिकायत प्रणाली का उपयोग करें। उत्तर प्रदेश में जनसुनवाई पोर्टल और स्थानीय नगर निगम की हेल्पलाइन उपलब्ध है। शिकायत संख्या और तारीख सहेजें।",
+    answerStatus: "official_source",
+    sources: [
+      { label: "जनसुनवाई, उत्तर प्रदेश", url: "https://jansunwai.up.nic.in/" },
+      { label: "नगरीय विकास विभाग, उत्तर प्रदेश", url: "https://urban.up.nic.in/" },
+    ],
+    districtId: "up-lucknow",
+    stateId: "up",
+    isDemo: true,
+    createdAt: "2026-10-11T06:00:00.000Z",
+  },
+  {
+    id: "qa-demo-2",
+    question: "अपने विधायक की जानकारी कैसे जाँचें?",
+    answer:
+      "अपना विधानसभा क्षेत्र पहचानें, फिर राज्य विधानसभा की आधिकारिक सदस्य सूची में नाम देखें। निर्वाचन आयोग के परिणाम पोर्टल पर भी निर्वाचन क्षेत्रवार जानकारी मिलती है। लोकसभा सदस्यों के लिए sansad.in देखें।",
+    answerStatus: "official_source",
+    sources: [
+      { label: "उत्तर प्रदेश विधानसभा", url: "https://uplegisassembly.gov.in/" },
+      { label: "निर्वाचन आयोग परिणाम", url: "https://results.eci.gov.in/" },
+      { label: "संसद सदस्य", url: "https://sansad.in/ls/members" },
+    ],
+    districtId: null,
+    stateId: "up",
+    isDemo: true,
+    createdAt: "2026-10-13T06:00:00.000Z",
+  },
+  {
+    id: "qa-demo-3",
+    question: "सरकारी योजना के लिए आवेदन कैसे करें?",
+    answer: null,
+    answerStatus: "pending",
+    sources: [{ label: "National Portal of India", url: "https://www.india.gov.in/" }],
+    districtId: "bihar-patna",
+    stateId: "bihar",
+    isDemo: true,
+    createdAt: "2026-10-21T06:00:00.000Z",
+  },
+];
