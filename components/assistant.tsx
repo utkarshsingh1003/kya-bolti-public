@@ -335,7 +335,7 @@ export function Assistant() {
               {typing ? (
                 <div className="flex justify-start">
                   <div className="rounded-2xl rounded-bl-md border border-navy-100 bg-white px-3 py-2 text-xs text-navy-500">
-                    <span className="animate-soft-pulse">जनता साथी सोच रहा है…</span>
+                    <span className="animate-soft-pulse">Public Saathi सोच रहा है…</span>
                   </div>
                 </div>
               ) : null}

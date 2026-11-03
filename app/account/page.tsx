@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/ui";
 import { AccountPanel } from "@/components/account-panel";
+import { getServerLocale, textFor } from "@/lib/server-locale";
 
 export const metadata: Metadata = {
   title: "मेरा खाता",
@@ -8,10 +9,12 @@ export const metadata: Metadata = {
   alternates: { canonical: "/account" },
 };
 
-export default function AccountPage() {
+export default async function AccountPage() {
+  const locale = await getServerLocale();
+  const text = textFor(locale);
   return (
     <>
-      <PageHeader eyebrow="खाता" title="मेरा खाता" />
+      <PageHeader eyebrow={text("खाता", "Account")} title={text("मेरा खाता", "My account")} />
       <AccountPanel />
     </>
   );

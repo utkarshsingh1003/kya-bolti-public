@@ -207,7 +207,7 @@ export function QaExplorer({ initialQuestions }: { initialQuestions: Question[] 
         </div>
         <ButtonLink href="/assistant" variant="outline" className="w-full">
           <IconQa className="h-4 w-4" />
-          {locale === "hi" ? "जनता साथी से पूछें" : "Ask Janata Saathi"}
+          {locale === "hi" ? "Public Saathi से पूछें" : "Ask Public Saathi"}
         </ButtonLink>
       </aside>
     </div>

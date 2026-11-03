@@ -46,14 +46,14 @@ export function RepresentativesExplorer() {
   function sourceFor(role: RepresentativeRole): { label: string; url: string } {
     const state = stateSources[location.stateId];
     const fallback = roleInfo[role];
-    if (!state) return { label: fallback.sourceLabel, url: fallback.sourceUrl };
-    if (role === "mla" || role === "mlc") return { label: fallback.sourceLabel, url: state.assembly };
+    if (!state) return { label: pick(fallback.sourceLabel, locale), url: fallback.sourceUrl };
+    if (role === "mla" || role === "mlc") return { label: pick(fallback.sourceLabel, locale), url: state.assembly };
     if (role === "mayor" || role === "chairperson" || role === "councillor") {
-      return { label: fallback.sourceLabel, url: state.urban };
+      return { label: pick(fallback.sourceLabel, locale), url: state.urban };
     }
-    if (role === "gram_pradhan") return { label: fallback.sourceLabel, url: state.rural };
-    if (role === "district_magistrate") return { label: fallback.sourceLabel, url: state.statePortal };
-    return { label: fallback.sourceLabel, url: fallback.sourceUrl };
+    if (role === "gram_pradhan") return { label: pick(fallback.sourceLabel, locale), url: state.rural };
+    if (role === "district_magistrate") return { label: pick(fallback.sourceLabel, locale), url: state.statePortal };
+    return { label: pick(fallback.sourceLabel, locale), url: fallback.sourceUrl };
   }
 
   return (

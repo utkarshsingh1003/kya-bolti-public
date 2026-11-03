@@ -41,7 +41,7 @@ export function Logo({
             showTagline ? "" : "hidden sm:block"
           }`}
         >
-          जनता की बात, सबकी आवाज़
+          क्या बोलती PUBLIC
         </span>
       </span>
     </Link>

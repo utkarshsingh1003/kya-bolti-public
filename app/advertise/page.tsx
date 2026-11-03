@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/ui";
 import { AdInquiryForm } from "@/components/ad-inquiry-form";
+import { getServerLocale, textFor } from "@/lib/server-locale";
 
 export const metadata: Metadata = {
   title: "विज्ञापन दें",
@@ -8,10 +9,12 @@ export const metadata: Metadata = {
   alternates: { canonical: "/advertise" },
 };
 
-export default function AdvertisePage() {
+export default async function AdvertisePage() {
+  const locale = await getServerLocale();
+  const text = textFor(locale);
   return (
     <>
-      <PageHeader eyebrow="विज्ञापन" title="विज्ञापन दें" />
+      <PageHeader eyebrow={text("विज्ञापन", "Advertising")} title={text("विज्ञापन दें", "Advertise with us")} />
       <div className="container-page pb-12">
         <AdInquiryForm />
       </div>

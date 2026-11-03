@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { PageHeader } from "@/components/ui";
 import { QaExplorer } from "@/components/qa-explorer";
 import { getRepository } from "@/lib/store";
+import { getServerLocale, textFor } from "@/lib/server-locale";
 
 export const dynamic = "force-dynamic";
 
@@ -14,12 +15,17 @@ export const metadata: Metadata = {
 export default async function QaPage() {
   const repo = await getRepository();
   const questions = await repo.listQuestions({ limit: 60 });
+  const locale = await getServerLocale();
+  const text = textFor(locale);
   return (
     <>
       <PageHeader
-        eyebrow="पूछिए, समझिए"
-        title="नागरिक सवाल-जवाब"
-        description="स्थानीय शासन, सरकारी सेवाओं और प्रक्रियाओं के सवाल पूछें। जवाब केवल तभी ‘आधिकारिक’ कहे जाते हैं जब साथ में आधिकारिक स्रोत जुड़ा हो।"
+        eyebrow={text("पूछिए, समझिए", "Ask and understand")}
+        title={text("नागरिक सवाल-जवाब", "Civic questions & answers")}
+        description={text(
+          "स्थानीय शासन, सरकारी सेवाओं और प्रक्रियाओं के सवाल पूछें। जवाब केवल तभी ‘आधिकारिक’ कहे जाते हैं जब साथ में आधिकारिक स्रोत जुड़ा हो।",
+          "Ask about local governance, public services and procedures. Answers are marked 'official' only when an official source is attached.",
+        )}
       />
       <QaExplorer initialQuestions={questions} />
     </>

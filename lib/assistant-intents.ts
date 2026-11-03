@@ -72,8 +72,8 @@ export function replyForIntent(
     case "greeting":
       return {
         text: hi
-          ? "नमस्कार! मैं जनता साथी हूँ। आप खबरें, जनप्रतिनिधि, शिकायत, योजनाएँ या क्विज़ के बारे में पूछ सकते हैं।"
-          : "Hello! I am Janata Saathi. You can ask about news, representatives, complaints, schemes or quizzes.",
+          ? "नमस्कार! मैं Public Saathi हूँ। आप खबरें, जनप्रतिनिधि, शिकायत, योजनाएँ या क्विज़ के बारे में पूछ सकते हैं।"
+          : "Hello! I am Public Saathi. You can ask about news, representatives, complaints, schemes or quizzes.",
         links: [],
       };
     case "news":

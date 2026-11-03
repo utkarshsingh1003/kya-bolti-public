@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { PageHeader } from "@/components/ui";
 import { ReviewsExplorer } from "@/components/reviews-explorer";
 import { getRepository } from "@/lib/store";
+import { getServerLocale, textFor } from "@/lib/server-locale";
 
 export const dynamic = "force-dynamic";
 
@@ -14,12 +15,17 @@ export const metadata: Metadata = {
 export default async function ReviewsPage() {
   const repo = await getRepository();
   const reviews = await repo.listReviews({ limit: 60 });
+  const locale = await getServerLocale();
+  const text = textFor(locale);
   return (
     <>
       <PageHeader
-        eyebrow="नागरिक अनुभव"
-        title="सार्वजनिक सेवाओं पर समीक्षा"
-        description="सफ़ाई, पानी, बिजली, सड़क और अन्य सेवाओं पर अपना अनुभव साझा करें। ये व्यक्तिगत राय हैं — किसी दावे को सत्यापित तथ्य न मानें।"
+        eyebrow={text("नागरिक अनुभव", "Citizen experience")}
+        title={text("सार्वजनिक सेवाओं पर समीक्षा", "Reviews of public services")}
+        description={text(
+          "सफ़ाई, पानी, बिजली, सड़क और अन्य सेवाओं पर अपना अनुभव साझा करें। ये व्यक्तिगत राय हैं — किसी दावे को सत्यापित तथ्य न मानें।",
+          "Share your experience with sanitation, water, electricity, roads and other services. These are personal opinions — do not treat any claim as a verified fact.",
+        )}
       />
       <ReviewsExplorer initialReviews={reviews} />
     </>

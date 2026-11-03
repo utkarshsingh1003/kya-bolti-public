@@ -48,8 +48,8 @@ export function AssistantPage() {
               role: "assistant",
               text:
                 locale === "hi"
-                  ? `नमस्कार! मैं जनता साथी हूँ। अभी आपका इलाका: ${label}। खबरें, जनप्रतिनिधि, शिकायत, योजनाएँ, मतदाता पंजीकरण या क्विज़ के बारे में पूछिए।`
-                  : `Hello! I am Janata Saathi. Your area: ${label}. Ask about news, representatives, complaints, schemes, voter registration or quizzes.`,
+                  ? `नमस्कार! मैं Public Saathi हूँ। अभी आपका इलाका: ${label}। खबरें, जनप्रतिनिधि, शिकायत, योजनाएँ, मतदाता पंजीकरण या क्विज़ के बारे में पूछिए।`
+                  : `Hello! I am Public Saathi. Your area: ${label}. Ask about news, representatives, complaints, schemes, voter registration or quizzes.`,
             },
           ]
         : current,
@@ -141,7 +141,7 @@ export function AssistantPage() {
             <IconSpark className="h-5 w-5" />
           </span>
           <div>
-            <p className="hindi text-sm font-extrabold text-navy-900">{locale === "hi" ? "जनता साथी" : "Janata Saathi"}</p>
+            <p className="hindi text-sm font-extrabold text-navy-900">{locale === "hi" ? "Public Saathi" : "Public Saathi"}</p>
             <p className="text-[0.66rem] text-navy-500">
               {locale === "hi" ? "सीमित इरादे • केवल जानकारी, कानूनी सलाह नहीं" : "Limited intents • information only, not legal advice"}
             </p>
@@ -276,8 +276,8 @@ export function AssistantPage() {
           <h2 className="text-sm font-extrabold text-amber-950">{locale === "hi" ? "सीमाएँ" : "Limits"}</h2>
           <p className="mt-1.5 text-[0.72rem] leading-relaxed text-amber-900">
             {locale === "hi"
-              ? "जनता साथी केवल सीमित विषय समझता है और सत्यापित/लेबल किए गए डेटा से लिंक देता है। यह आपातकालीन सेवा या कानूनी सलाह नहीं है। आपात स्थिति में 112 पर कॉल करें।"
-              : "Janata Saathi understands limited topics and links to verified/labelled data. It is not an emergency service or legal advice. In an emergency call 112."}
+              ? "Public Saathi केवल सीमित विषय समझता है और सत्यापित/लेबल किए गए डेटा से लिंक देता है। यह आपातकालीन सेवा या कानूनी सलाह नहीं है। आपात स्थिति में 112 पर कॉल करें।"
+              : "Public Saathi understands limited topics and links to verified/labelled data. It is not an emergency service or legal advice. In an emergency call 112."}
           </p>
         </div>
         <div className="rounded-2xl border border-navy-100 bg-white p-4">

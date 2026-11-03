@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/ui";
 import { PollsExplorer } from "@/components/polls-explorer";
+import { getServerLocale, textFor } from "@/lib/server-locale";
 
 export const metadata: Metadata = {
   title: "क्या बोलती Public",
@@ -9,13 +10,18 @@ export const metadata: Metadata = {
   alternates: { canonical: "/polls" },
 };
 
-export default function PollsPage() {
+export default async function PollsPage() {
+  const locale = await getServerLocale();
+  const text = textFor(locale);
   return (
     <>
       <PageHeader
-        eyebrow="जनता क्या कह रही है?"
-        title="क्या बोलती Public"
-        description="ये अनौपचारिक पोल हैं, कोई सर्वेक्षण या चुनाव पूर्वानुमान नहीं। एक खाते से एक वोट सर्वर पर लागू होता है — नतीजे केवल इस मंच के प्रतिभागियों की राय दिखाते हैं।"
+        eyebrow="क्या बोलती PUBLIC"
+        title={text("क्या बोलती Public", "Kya Bolti Public")}
+        description={text(
+          "ये अनौपचारिक पोल हैं, कोई सर्वेक्षण या चुनाव पूर्वानुमान नहीं। एक खाते से एक वोट सर्वर पर लागू होता है — नतीजे केवल इस मंच के प्रतिभागियों की राय दिखाते हैं।",
+          "These are informal community polls, not surveys or election forecasts. One vote per account is enforced on the server — results reflect only the opinions of this platform's participants.",
+        )}
       />
       <PollsExplorer />
     </>

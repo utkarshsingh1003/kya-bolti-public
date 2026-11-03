@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { PageHeader } from "@/components/ui";
 import { IssuesExplorer } from "@/components/issues-explorer";
 import { getRepository } from "@/lib/store";
+import { getServerLocale, textFor } from "@/lib/server-locale";
 
 export const dynamic = "force-dynamic";
 
@@ -19,12 +20,17 @@ export default async function IssuesPage({
   const params = await searchParams;
   const repo = await getRepository();
   const issues = await repo.listIssues({ limit: 60 });
+  const locale = await getServerLocale();
+  const text = textFor(locale);
   return (
     <>
       <PageHeader
-        eyebrow="इलाके की समस्याएँ"
-        title="नागरिक समस्याएँ"
-        description="अपने इलाके की समस्या दर्ज करें, ट्रैकिंग कोड पाएँ और स्थिति देखें। यह स्थानीय रिकॉर्ड है — आधिकारिक शिकायत पोर्टल पर भी शिकायत दर्ज करें।"
+        eyebrow={text("इलाके की समस्याएँ", "Local issues")}
+        title={text("नागरिक समस्याएँ", "Civic issues")}
+        description={text(
+          "अपने इलाके की समस्या दर्ज करें, ट्रैकिंग कोड पाएँ और स्थिति देखें। यह स्थानीय रिकॉर्ड है — आधिकारिक शिकायत पोर्टल पर भी शिकायत दर्ज करें।",
+          "Report an issue in your area, get a tracking code and check its status. This is a local record — also file a complaint on the official grievance portal.",
+        )}
       />
       <IssuesExplorer initialIssues={issues} initialCode={params.code?.toUpperCase()} />
     </>

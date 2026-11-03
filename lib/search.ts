@@ -17,7 +17,7 @@ const pages = [
   { href: "/discussions", hi: "मोहल्ला चर्चा", en: "Neighbourhood discussions", dHi: "अपने इलाके के मुद्दों पर सभ्य चर्चा।", dEn: "Civil discussion about local issues." },
   { href: "/qa", hi: "नागरिक सवाल-जवाब", en: "Civic Q&A", dHi: "स्थानीय शासन और सरकारी सेवाओं के सवाल।", dEn: "Questions about local governance and public services." },
   { href: "/reviews", hi: "सेवा समीक्षा", en: "Service reviews", dHi: "सार्वजनिक सेवाओं पर नागरिक अनुभव।", dEn: "Citizen experiences with public services." },
-  { href: "/assistant", hi: "जनता साथी", en: "Janata Saathi", dHi: "हिंदी में बोलकर या लिखकर सवाल पूछें।", dEn: "Ask by voice or text in Hindi." },
+  { href: "/assistant", hi: "Public Saathi", en: "Public Saathi", dHi: "हिंदी में बोलकर या लिखकर सवाल पूछें।", dEn: "Ask by voice or text in Hindi." },
   { href: "/about", hi: "हमारे बारे में", en: "About", dHi: "मंच का उद्देश्य और स्वतंत्रता की घोषणा।", dEn: "The platform's purpose and independence." },
   { href: "/privacy", hi: "गोपनीयता नीति", en: "Privacy policy", dHi: "कौन-सा डेटा लिया जाता है और क्यों।", dEn: "What data is collected and why." },
   { href: "/terms", hi: "उपयोग की शर्तें", en: "Terms of use", dHi: "मंच के उपयोग के नियम।", dEn: "Rules for using the platform." },

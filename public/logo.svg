@@ -9,5 +9,5 @@
     <circle cx="47.5" cy="15.5" r="4.5" fill="#E9B949"/>
   </g>
   <text x="88" y="48" font-family="'Noto Sans Devanagari', sans-serif" font-size="27" font-weight="800" fill="#0A1F3A">क्या बोलती <tspan fill="#DE500D">PUBLIC</tspan></text>
-  <text x="89" y="70" font-family="'Noto Sans Devanagari', sans-serif" font-size="11" font-weight="600" letter-spacing="2.5" fill="#39537B">जनता की बात, सबकी आवाज़</text>
+  <text x="89" y="70" font-family="'Noto Sans Devanagari', sans-serif" font-size="11" font-weight="600" letter-spacing="2.5" fill="#39537B">क्या बोलती PUBLIC</text>
 </svg>

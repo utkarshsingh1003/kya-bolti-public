@@ -13,6 +13,7 @@ export function NewsCard({ article, compact = false }: { article: NewsArticle; c
   const { locale, t } = useLocale();
   const title = locale === "hi" ? article.title.hi : article.title.en;
   const summary = locale === "hi" ? article.summary.hi : article.summary.en;
+  const sourceName = article.isDemo && locale === "en" ? "Sample content (demo)" : article.sourceName;
   const category = categoryLabel(
     Object.fromEntries(newsCategories.map((item) => [item.id, { hi: item.hi, en: item.en }])),
     article.category,
@@ -55,14 +56,14 @@ export function NewsCard({ article, compact = false }: { article: NewsArticle; c
               <IconClock className="h-3 w-3" />
               {article.isDemo ? (locale === "hi" ? "उदाहरण समय" : "Sample time") : relativeTime(article.publishedAt, locale)}
             </span>
-            <span className="truncate font-medium text-navy-600">{article.sourceName}</span>
+            <span className="truncate font-medium text-navy-600">{sourceName}</span>
             {external ? (
               <a
                 href={href}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="ml-auto inline-flex shrink-0 items-center gap-0.5 font-semibold text-brand-700 hover:underline"
-                aria-label={`${t.news.source}: ${article.sourceName}`}
+                aria-label={`${t.news.source}: ${sourceName}`}
               >
                 {t.news.source} <IconExternal className="h-3 w-3" />
               </a>

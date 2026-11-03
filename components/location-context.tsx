@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { defaultLocation, getDistrict, states } from "@/data/geo";
+import { useLocale } from "@/components/locale-context";
 import type { LocationSelection } from "@/lib/types";
 
 export type AreaType = "urban" | "rural" | "unknown";
@@ -83,11 +84,15 @@ export function LocationProvider({ children }: { children: ReactNode }) {
     [location, setLocation],
   );
 
+  const { locale } = useLocale();
+
   const label = useMemo(() => {
     const found = getDistrict(location.districtId);
-    if (!found) return location.label ?? "उत्तर प्रदेश";
-    return `${found.district.nameHi}, ${found.state.nameHi}`;
-  }, [location.districtId, location.label]);
+    if (!found) return location.label ?? (locale === "hi" ? "उत्तर प्रदेश" : "Uttar Pradesh");
+    return locale === "hi"
+      ? `${found.district.nameHi}, ${found.state.nameHi}`
+      : `${found.district.nameEn}, ${found.state.nameEn}`;
+  }, [location.districtId, location.label, locale]);
 
   const value = useMemo(
     () => ({

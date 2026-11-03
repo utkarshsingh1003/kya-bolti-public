@@ -13,7 +13,7 @@ export const roleInfo: Record<
     scope: LocalizedText;
     responsibility: LocalizedText;
     appliesTo: "all" | "urban" | "rural" | "state_with_council";
-    sourceLabel: string;
+    sourceLabel: LocalizedText;
     sourceUrl: string;
   }
 > = {
@@ -25,7 +25,7 @@ export const roleInfo: Record<
       en: "Participates in national law-making, the Union budget and national policy; raises constituency concerns in Parliament.",
     },
     appliesTo: "all",
-    sourceLabel: "संसद सदस्य सूची (sansad.in)",
+    sourceLabel: { hi: "संसद सदस्य सूची (sansad.in)", en: "List of Members of Parliament (sansad.in)" },
     sourceUrl: "https://sansad.in/ls/members",
   },
   mla: {
@@ -36,7 +36,7 @@ export const roleInfo: Record<
       en: "Works on state laws, the state budget and local policy in the Assembly; raises constituency issues on the floor.",
     },
     appliesTo: "all",
-    sourceLabel: "राज्य विधानसभा की आधिकारिक वेबसाइट",
+    sourceLabel: { hi: "राज्य विधानसभा की आधिकारिक वेबसाइट", en: "Official state legislative assembly website" },
     sourceUrl: "https://uplegisassembly.gov.in/",
   },
   mlc: {
@@ -47,7 +47,7 @@ export const roleInfo: Record<
       en: "Reviews bills and participates in the state legislature in states that have a Legislative Council. Not every state has one.",
     },
     appliesTo: "state_with_council",
-    sourceLabel: "विधान परिषद की आधिकारिक जानकारी",
+    sourceLabel: { hi: "विधान परिषद की आधिकारिक जानकारी", en: "Official Legislative Council information" },
     sourceUrl: "https://uplegisassembly.gov.in/",
   },
   mayor: {
@@ -58,7 +58,7 @@ export const roleInfo: Record<
       en: "Chairs municipal corporation meetings and oversees city services; this office does not exist in every city.",
     },
     appliesTo: "urban",
-    sourceLabel: "राज्य नगरीय विकास विभाग",
+    sourceLabel: { hi: "राज्य नगरीय विकास विभाग", en: "State urban development department" },
     sourceUrl: "https://urban.up.nic.in/",
   },
   chairperson: {
@@ -69,7 +69,7 @@ export const roleInfo: Record<
       en: "Leads urban services and council meetings in smaller towns; larger cities have a Mayor instead.",
     },
     appliesTo: "urban",
-    sourceLabel: "राज्य नगरीय विकास विभाग",
+    sourceLabel: { hi: "राज्य नगरीय विकास विभाग", en: "State urban development department" },
     sourceUrl: "https://urban.up.nic.in/",
   },
   councillor: {
@@ -80,7 +80,7 @@ export const roleInfo: Record<
       en: "Represents ward-level issues to the urban body, including sanitation, streetlights and local roads.",
     },
     appliesTo: "urban",
-    sourceLabel: "नगरीय निकाय / राज्य निर्वाचन आयोग",
+    sourceLabel: { hi: "नगरीय निकाय / राज्य निर्वाचन आयोग", en: "Urban local body / State Election Commission" },
     sourceUrl: "https://urban.up.nic.in/",
   },
   gram_pradhan: {
@@ -91,7 +91,7 @@ export const roleInfo: Record<
       en: "Leads the village panchayat and supports local sanitation, drinking water, roads and scheme implementation.",
     },
     appliesTo: "rural",
-    sourceLabel: "पंचायती राज विभाग",
+    sourceLabel: { hi: "पंचायती राज विभाग", en: "Department of Panchayati Raj" },
     sourceUrl: "https://panchayatiraj.up.nic.in/",
   },
   district_magistrate: {
@@ -102,7 +102,7 @@ export const roleInfo: Record<
       en: "Administrative head of the district; this is an appointed, not elected, office. Coordinates law and order and district schemes.",
     },
     appliesTo: "all",
-    sourceLabel: "जिला प्रशासन",
+    sourceLabel: { hi: "जिला प्रशासन", en: "District administration" },
     sourceUrl: "https://up.gov.in/",
   },
 };

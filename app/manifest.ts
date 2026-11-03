@@ -23,7 +23,7 @@ export default function manifest(): MetadataRoute.Manifest {
     shortcuts: [
       { name: "आज की खबरें", short_name: "खबरें", url: "/news", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
       { name: "समस्या दर्ज करें", short_name: "समस्या", url: "/issues/new", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
-      { name: "जनता साथी", short_name: "साथी", url: "/assistant", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
+      { name: "Public Saathi", short_name: "साथी", url: "/assistant", icons: [{ src: "/icons/icon-192.png", sizes: "192x192" }] },
     ],
   };
 }

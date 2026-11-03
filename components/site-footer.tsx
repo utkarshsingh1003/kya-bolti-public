@@ -27,7 +27,7 @@ const columns = [
     links: [
       { href: "/qa", hi: "सवाल-जवाब", en: "Q&A" },
       { href: "/reviews", hi: "सेवा समीक्षा", en: "Service reviews" },
-      { href: "/assistant", hi: "जनता साथी", en: "Janata Saathi" },
+      { href: "/assistant", hi: "Public Saathi", en: "Public Saathi" },
       { href: "/search", hi: "खोजें", en: "Search" },
       { href: "/sources", hi: "स्रोत और श्रेय", en: "Sources & attribution" },
       { href: "/advertise", hi: "विज्ञापन", en: "Advertise" },
