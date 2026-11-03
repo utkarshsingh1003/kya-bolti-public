@@ -1,8 +1,9 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { getRepository } from "@/lib/store";
+import { getRepository, isPersistentMode } from "@/lib/store";
 import { districtMatchesState, mutationGuard, noStore, readJson, validationError } from "@/lib/api";
 import { issueInputSchema, issueStatuses, looksLikeAbuse, looksLikeSpam } from "@/lib/validation";
+import { sessionUserIdFromRequest } from "@/lib/accounts";
 import type { IssueStatus } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -40,13 +41,13 @@ export async function POST(request: NextRequest) {
   }
 
   const repo = await getRepository();
-  const issue = await repo.createIssue(parsed.data);
+  const issue = await repo.createIssue(parsed.data, sessionUserIdFromRequest(request));
   return noStore(
     {
       ok: true,
       trackingCode: issue.trackingCode,
       id: issue.id,
-      persistent: repo.mode !== "memory",
+      persistent: isPersistentMode(repo.mode),
       storage: repo.mode,
     },
     { status: 201 },

@@ -18,3 +18,9 @@ test-results/
 tests/.e2e-data/
 next-env.d.ts
 *.tsbuildinfo
+
+# Local environment backup files
+.env.local.save
+
+# Supabase CLI local state
+supabase/.temp/

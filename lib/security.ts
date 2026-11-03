@@ -1,5 +1,6 @@
 import { createHash, createHmac, randomUUID, timingSafeEqual } from "crypto";
 import type { NextRequest } from "next/server";
+import { demoModeActive } from "@/lib/store";
 
 export function sha256(value: string): string {
   return createHash("sha256").update(value).digest("hex");
@@ -149,6 +150,12 @@ export function isAdminRequest(request: NextRequest): boolean {
 }
 
 export function requireAdmin(request: NextRequest): Response | null {
+  if (demoModeActive()) {
+    return jsonError(
+      "Admin is temporarily unavailable: the production database is not enabled on this deployment yet.",
+      503,
+    );
+  }
   if (!adminConfigured()) {
     return jsonError("Admin access is not configured on this deployment.", 503);
   }

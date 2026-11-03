@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { clientIp, isSameOrigin, jsonError, rateLimit } from "@/lib/security";
 import { getDistrict } from "@/data/geo";
+import { demoModeActive } from "@/lib/store";
 
 export async function readJson(request: NextRequest): Promise<unknown | null> {
   try {
@@ -18,6 +19,12 @@ export function mutationGuard(
   request: NextRequest,
   options: { name: string; limit: number; windowMs: number },
 ): Response | null {
+  if (demoModeActive()) {
+    return jsonError(
+      "This action is temporarily unavailable: the production database is not enabled on this deployment yet. Browsing and demo content remain available.",
+      503,
+    );
+  }
   if (!isSameOrigin(request)) return jsonError("Invalid request origin.", 403);
   const limit = rateLimit(`${options.name}:${clientIp(request)}`, options.limit, options.windowMs);
   if (!limit.ok) {

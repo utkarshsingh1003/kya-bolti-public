@@ -4,6 +4,7 @@ import { PageHeader, Badge } from "@/components/ui";
 import { quizIcons } from "@/components/icons";
 import { quizzes } from "@/data/quizzes";
 import { pick } from "@/lib/i18n";
+import { GamesExplorer } from "@/components/games-explorer";
 
 export const metadata: Metadata = {
   title: "नागरिक ज्ञान के खेल",
@@ -26,6 +27,7 @@ export default function GamesPage() {
         title="नागरिक ज्ञान के खेल"
         description={`${quizzes.length} छोटे क्विज़ — संविधान, सरकारी योजनाएँ, जनप्रतिनिधियों की भूमिकाएँ, मतदाता जागरूकता और मिथक-तथ्य। हर जवाब के साथ सरल व्याख्या और आधिकारिक स्रोत।`}
       />
+      <GamesExplorer />
       <div className="container-page py-8 sm:py-10">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {quizzes.map((quiz) => {

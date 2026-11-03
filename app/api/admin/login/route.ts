@@ -9,10 +9,21 @@ import {
   rateLimit,
   verifyAdminPassword,
 } from "@/lib/security";
+import { demoModeActive } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
+  if (demoModeActive()) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          "Admin is temporarily unavailable: the production database is not enabled on this deployment yet.",
+      },
+      { status: 503 },
+    );
+  }
   if (!adminConfigured()) {
     return NextResponse.json(
       {

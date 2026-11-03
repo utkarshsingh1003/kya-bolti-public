@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocale } from "@/components/locale-context";
 import { pick } from "@/lib/i18n";
 import { quizPercent, scoreQuiz } from "@/lib/quiz";
 import { Badge, ButtonLink, buttonClass, cn } from "@/components/ui";
 import { IconArrowLeft, IconCheck, IconClose, IconExternal, quizIcons } from "@/components/icons";
+import { useAuth } from "@/components/auth-hook";
 import type { Quiz } from "@/lib/types";
 
 const tones: Record<string, { chip: string; ring: string; icon: string }> = {
@@ -18,10 +19,30 @@ const tones: Record<string, { chip: string; ring: string; icon: string }> = {
 
 export function QuizRunner({ quiz }: { quiz: Quiz }) {
   const { locale } = useLocale();
+  const { user } = useAuth();
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   const [answers, setAnswers] = useState<(number | null)[]>(() => quiz.questions.map(() => null));
   const [finished, setFinished] = useState(false);
+  const [bestScore, setBestScore] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!finished || !user) return;
+    let active = true;
+    void (async () => {
+      const response = await fetch("/api/games/score", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ quizSlug: quiz.slug, answers: answers.filter((value): value is number => value !== null) }),
+      });
+      const data = (await response.json()) as { ok?: boolean; best?: number };
+      if (active && response.ok) setBestScore(data.best ?? null);
+    })();
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [finished, user]);
 
   const question = quiz.questions[index]!;
   const answeredCurrent = selected !== null;
@@ -70,6 +91,11 @@ export function QuizRunner({ quiz }: { quiz: Quiz }) {
           <p className="hindi mt-1 text-4xl font-extrabold text-navy-900">
             {score} <span className="text-xl text-navy-400">/ {quiz.questions.length}</span>
           </p>
+          {bestScore !== null ? (
+            <p className="mt-2 text-[0.72rem] font-bold text-teal-700">
+              {locale === "hi" ? "आपका बेस्ट स्कोर: " : "Your best score: "} {bestScore}
+            </p>
+          ) : null}
           <p className="mt-1 text-sm font-semibold text-navy-600">
             {percent >= 80
               ? locale === "hi" ? "बहुत बढ़िया!" : "Excellent!"

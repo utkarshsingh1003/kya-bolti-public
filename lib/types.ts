@@ -78,6 +78,8 @@ export type Representative = {
   note?: LocalizedText;
 };
 
+export type PollStatus = "draft" | "published" | "closed" | "archived";
+
 export type Poll = {
   id: string;
   question: LocalizedText;
@@ -87,6 +89,128 @@ export type Poll = {
   isDemo: boolean;
   createdAt: string;
   options: { id: string; label: LocalizedText }[];
+  /** Optional for records created before poll management existed. */
+  status?: PollStatus;
+  featured?: boolean;
+  sponsored?: boolean;
+  sponsorLabel?: LocalizedText | null;
+};
+
+export type PollRequestStatus = "pending" | "approved" | "rejected" | "published";
+
+export type PollRequest = {
+  id: string;
+  questionHi: string;
+  questionEn: string;
+  optionsHi: string[];
+  optionsEn: string[];
+  category: string;
+  purpose: string;
+  contact: string | null;
+  stateId: string;
+  districtId: string;
+  status: PollRequestStatus;
+  adminNote: string | null;
+  createdPollId: string | null;
+  ownerId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AnnouncementCategory = "notice" | "event" | "scheme" | "alert";
+export type AnnouncementStatus = "draft" | "scheduled" | "published" | "archived";
+
+export type Announcement = {
+  id: string;
+  title: LocalizedText;
+  body: LocalizedText;
+  category: AnnouncementCategory;
+  stateId: string | null;
+  districtId: string | null;
+  sourceLabel: string | null;
+  sourceUrl: string | null;
+  imageUrl: string | null;
+  status: AnnouncementStatus;
+  publishAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type BuzzCategory = "trending" | "news" | "entertainment" | "sports" | "memes" | "public_issues";
+export type BuzzStatus = "pending" | "draft" | "published" | "archived";
+
+export type BuzzPost = {
+  id: string;
+  title: LocalizedText;
+  summary: LocalizedText;
+  body: LocalizedText;
+  category: BuzzCategory;
+  platform: string;
+  sourceUrl: string | null;
+  imageUrl: string | null;
+  status: BuzzStatus;
+  /** "admin" posts are editorial; "community_link" posts are unreviewed link submissions. */
+  origin: "admin" | "community_link";
+  submittedBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+  publishedAt: string | null;
+};
+
+export type AdStatus = "pending" | "approved" | "active" | "paused" | "rejected" | "expired";
+export type AdPaymentStatus = "unpaid" | "verified";
+
+export type AdInquiry = {
+  id: string;
+  advertiserName: string;
+  email: string;
+  phone: string;
+  objective: string;
+  budgetRange: string;
+  placement: string;
+  destinationUrl: string;
+  creativeUrl: string | null;
+  campaignStart: string | null;
+  campaignEnd: string | null;
+  status: AdStatus;
+  paymentStatus: AdPaymentStatus;
+  adminNote: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type User = {
+  id: string;
+  email: string;
+  displayName: string;
+  passwordHash: string;
+  stateId: string | null;
+  districtId: string | null;
+  pin: string | null;
+  area: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PublicUser = Omit<User, "passwordHash">;
+
+export type QuizScore = {
+  id: string;
+  userId: string;
+  quizSlug: string;
+  score: number;
+  total: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type LeaderboardEntry = {
+  rank: number;
+  displayName: string;
+  quizSlug: string;
+  score: number;
+  total: number;
+  updatedAt: string;
 };
 
 export type PollWithResults = {
@@ -114,6 +238,7 @@ export type CivicIssue = {
   updatedAt: string;
   officialComplaintUrl: string | null;
   events: { status: IssueStatus; note: string; createdAt: string }[];
+  ownerId?: string | null;
 };
 
 export type Review = {
@@ -129,6 +254,7 @@ export type Review = {
   status: "published" | "hidden";
   isDemo: boolean;
   createdAt: string;
+  ownerId?: string | null;
 };
 
 export type Thread = {
@@ -143,6 +269,7 @@ export type Thread = {
   createdAt: string;
   replyCount: number;
   status: "published" | "hidden";
+  ownerId?: string | null;
 };
 
 export type Reply = {
@@ -165,6 +292,7 @@ export type Question = {
   stateId: string | null;
   isDemo: boolean;
   createdAt: string;
+  ownerId?: string | null;
 };
 
 export type Report = {

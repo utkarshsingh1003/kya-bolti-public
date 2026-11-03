@@ -5,6 +5,7 @@ import { Providers } from "@/components/providers";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import type { Locale } from "@/lib/types";
+import { demoModeActive } from "@/lib/store";
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://kyaboltipublic.in";
 
@@ -67,12 +68,13 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const cookieStore = await cookies();
   const locale: Locale = cookieStore.get("kbp_locale")?.value === "en" ? "en" : "hi";
+  const demo = demoModeActive();
   const dataMode = process.env.DATABASE_URL
     ? "PostgreSQL"
-    : process.env.VERCEL
-      ? "Demo · memory"
-      : process.env.KBP_FILE_STORE
-        ? "JSON file"
+    : process.env.KBP_FILE_STORE
+      ? "Temporary file (not persistent)"
+      : process.env.VERCEL
+        ? "Demo · read-only, not persistent"
         : "Local file";
 
   return (
@@ -89,6 +91,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <link rel="icon" href="/icon.svg" type="image/svg+xml" />
       </head>
       <body className="min-h-dvh antialiased">
+        {demo ? (
+          <div role="status" className="bg-amber-100 px-4 py-2 text-center text-[0.78rem] leading-relaxed text-amber-950">
+            डेमो मोड: पढ़ना उपलब्ध है। खाते, वोटिंग, सबमिशन और एडमिन डेटाबेस चालू होने तक उपलब्ध नहीं हैं। / Demo mode: browsing is
+            available. Accounts, voting, submissions and admin are unavailable until the database is enabled.
+          </div>
+        ) : null}
         <Providers initialLocale={locale}>
           <SiteHeader />
           <main id="main-content" className="min-h-[60vh] pb-24 lg:pb-0">

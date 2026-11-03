@@ -49,6 +49,9 @@ create table if not exists issues (
   events jsonb not null default '[]'::jsonb
 );
 
+-- CREATE TABLE IF NOT EXISTS does not add columns to a pre-existing issues table.
+alter table issues add column if not exists pin text;
+
 create index if not exists issues_district_idx on issues (district_id, created_at desc);
 create index if not exists issues_status_idx on issues (status);
 

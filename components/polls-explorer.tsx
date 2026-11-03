@@ -5,6 +5,8 @@ import { PollCard } from "@/components/poll-card";
 import { useLocale } from "@/components/locale-context";
 import { Alert, EmptyState, buttonClass } from "@/components/ui";
 import { IconPoll } from "@/components/icons";
+import { PollRequestForm } from "@/components/poll-request-form";
+import { AdSlot } from "@/components/ad-slot";
 import type { PollWithResults } from "@/lib/types";
 
 type PollsResponse = {
@@ -12,6 +14,7 @@ type PollsResponse = {
   polls?: PollWithResults[];
   persistent?: boolean;
   storage?: string;
+  authenticated?: boolean;
   error?: string;
 };
 
@@ -32,6 +35,7 @@ export function PollsExplorer() {
   const [persistent, setPersistent] = useState(true);
   const [category, setCategory] = useState<(typeof categories)[number]>("all");
   const [reloadKey, setReloadKey] = useState(0);
+  const [authenticated, setAuthenticated] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -44,6 +48,7 @@ export function PollsExplorer() {
           setPolls(data.polls);
           setStorage(data.storage ?? null);
           setPersistent(data.persistent !== false);
+          setAuthenticated(Boolean(data.authenticated));
         } else {
           setError(true);
         }
@@ -81,10 +86,26 @@ export function PollsExplorer() {
       </div>
 
       {!persistent && polls ? (
-        <Alert tone="warning" className="mb-5" title={locale === "hi" ? "वोट स्थायी रूप से सहेजे नहीं जा रहे" : "Votes are not being stored permanently"}>
-          {locale === "hi"
-            ? "इस डिप्लॉयमेंट में डेटाबेस नहीं जुड़ा है। वोट केवल इस सर्वर इंस्टेंस की मेमोरी में रहते हैं और रीस्टार्ट पर मिट सकते हैं। स्थायी संग्रह के लिए PostgreSQL कॉन्फ़िगर करें।"
-            : "No database is connected on this deployment. Votes live only in this server instance's memory and may reset. Configure PostgreSQL for durable storage."}
+        <Alert
+          tone="warning"
+          className="mb-5"
+          title={
+            storage === "demo"
+              ? locale === "hi"
+                ? "पोल वोटिंग अभी उपलब्ध नहीं है"
+                : "Poll voting is temporarily unavailable"
+              : locale === "hi"
+                ? "वोट स्थायी रूप से सहेजे नहीं जा रहे"
+                : "Votes are not being stored permanently"
+          }
+        >
+          {storage === "demo"
+            ? locale === "hi"
+              ? "यह डेमो मोड है — पोल दिख रहे हैं, लेकिन वोटिंग डेटाबेस चालू होने तक उपलब्ध नहीं है। दिखाए गए नतीजे डेमो डेटा हैं।"
+              : "This is demo mode — polls are visible, but voting is unavailable until the database is enabled. Displayed results are demo data."
+            : locale === "hi"
+              ? "इस डिप्लॉयमेंट में डेटाबेस नहीं जुड़ा है। वोट केवल इस सर्वर इंस्टेंस की मेमोरी में रहते हैं और रीस्टार्ट पर मिट सकते हैं। स्थायी संग्रह के लिए PostgreSQL कॉन्फ़िगर करें।"
+              : "No database is connected on this deployment. Votes live only in this server instance's memory and may reset. Configure PostgreSQL for durable storage."}
           {storage ? <span className="mt-1 block text-[0.7rem] opacity-80">storage: {storage}</span> : null}
         </Alert>
       ) : null}
@@ -116,14 +137,22 @@ export function PollsExplorer() {
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {visible.map((poll) => (
-          <PollCard key={poll.poll.id} initial={poll} />
+          <PollCard key={poll.poll.id} initial={poll} authenticated={authenticated} />
         ))}
+      </div>
+
+      <div className="mt-6">
+        <AdSlot placement="polls" />
+      </div>
+
+      <div className="mt-6">
+        <PollRequestForm />
       </div>
 
       <p className="mt-6 rounded-xl border border-navy-100 bg-white px-4 py-3 text-[0.75rem] leading-relaxed text-navy-500">
         {locale === "hi"
-          ? "पोल के नतीजे केवल इस मंच पर भाग लेने वालों की राय हैं। डुप्लीकेट वोट रोकने के लिए कुकी-आधारित उपाय हैं, जो पूर्ण नहीं हैं। इन्हें किसी सर्वेक्षण, चुनाव पूर्वानुमान या जनमत के प्रतिनिधि नमूने के रूप में न पढ़ें।"
-          : "Poll results reflect only people who participated here. Cookie-based duplicate prevention is limited. Do not read these as a survey, election forecast or representative sample of public opinion."}
+          ? "पोल के नतीजे केवल इस मंच पर भाग लेने वालों की राय हैं। खाता आधारित एक-व्यक्ति-एक-वोट नियम सर्वर पर लागू है। इन्हें किसी सर्वेक्षण, चुनाव पूर्वानुमान या जनमत के प्रतिनिधि नमूने के रूप में न पढ़ें।"
+          : "Poll results reflect only people who participated here. One vote per account is enforced on the server. Do not read these as a survey, election forecast or representative sample of public opinion."}
       </p>
     </div>
   );

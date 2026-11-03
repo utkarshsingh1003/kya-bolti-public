@@ -1,17 +1,19 @@
 import type { NextRequest } from "next/server";
-import { getRepository } from "@/lib/store";
-import { voterCookie, voterFromRequest } from "@/lib/security";
+import { getRepository, isPersistentMode } from "@/lib/store";
 import { noStore } from "@/lib/api";
+import { sessionUserIdFromRequest } from "@/lib/accounts";
+import { sha256 } from "@/lib/security";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   const repo = await getRepository();
-  const voter = voterFromRequest(request);
+  const userId = sessionUserIdFromRequest(request);
+  const voterHash = userId ? sha256(`user:${userId}`) : "";
   const polls = await repo.listPolls();
   const withResults = await Promise.all(
     polls.map(async (poll) => {
-      const results = await repo.getPollResults(poll.id, voter.hash);
+      const results = await repo.getPollResults(poll.id, voterHash);
       return {
         poll,
         counts: results.counts,
@@ -20,12 +22,11 @@ export async function GET(request: NextRequest) {
       };
     }),
   );
-  const response = noStore({
+  return noStore({
     ok: true,
     polls: withResults,
+    authenticated: Boolean(userId),
     storage: repo.mode,
-    persistent: repo.mode !== "memory",
+    persistent: isPersistentMode(repo.mode),
   });
-  if (voter.isNew) response.cookies.set(voterCookie(voter.id));
-  return response;
 }

@@ -1,8 +1,9 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { getRepository } from "@/lib/store";
+import { getRepository, isPersistentMode } from "@/lib/store";
 import { districtMatchesState, mutationGuard, noStore, readJson, validationError } from "@/lib/api";
 import { looksLikeAbuse, looksLikeSpam, reviewInputSchema } from "@/lib/validation";
+import { sessionUserIdFromRequest } from "@/lib/accounts";
 
 export const dynamic = "force-dynamic";
 
@@ -29,9 +30,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "This review contains blocked content or spam." }, { status: 422 });
   }
   const repo = await getRepository();
-  const review = await repo.createReview(parsed.data);
+  const review = await repo.createReview(parsed.data, sessionUserIdFromRequest(request));
   return noStore(
-    { ok: true, review, persistent: repo.mode !== "memory", storage: repo.mode },
+    { ok: true, review, persistent: isPersistentMode(repo.mode), storage: repo.mode },
     { status: 201 },
   );
 }

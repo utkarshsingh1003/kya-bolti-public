@@ -209,6 +209,179 @@ export const representativeImportSchema = z.object({
   sourceNote: z.string().trim().max(300),
 });
 
+export const pollStatuses = ["draft", "published", "closed", "archived"] as const;
+export const pollRequestStatuses = ["pending", "approved", "rejected", "published"] as const;
+export const announcementCategories = ["notice", "event", "scheme", "alert"] as const;
+export const announcementStatuses = ["draft", "scheduled", "published", "archived"] as const;
+export const buzzCategories = ["trending", "news", "entertainment", "sports", "memes", "public_issues"] as const;
+export const buzzStatuses = ["pending", "draft", "published", "archived"] as const;
+export const adStatuses = ["pending", "approved", "active", "paused", "rejected", "expired"] as const;
+export const adPaymentStatuses = ["unpaid", "verified"] as const;
+
+const localizedText = (min: number, max: number) =>
+  z.object({ hi: cleanText(min, max), en: cleanText(min, max) });
+
+const isoDate = z
+  .string()
+  .trim()
+  .refine((value) => !Number.isNaN(Date.parse(value)), { message: "Enter a valid date." });
+
+const optionalIsoDate = z
+  .string()
+  .trim()
+  .optional()
+  .or(z.literal(""))
+  .transform((value) => (value ? value : undefined))
+  .refine((value) => value === undefined || !Number.isNaN(Date.parse(value)), {
+    message: "Enter a valid date.",
+  });
+
+export const pollRequestInputSchema = z.object({
+  questionHi: cleanText(10, 200),
+  questionEn: cleanText(10, 200),
+  optionsHi: z.array(cleanText(1, 90)).min(2).max(6),
+  optionsEn: z.array(cleanText(1, 90)).min(2).max(6),
+  category: z.enum(["civic", "awareness", "services", "local"]),
+  purpose: cleanText(20, 600),
+  contact: z.string().trim().email({ message: "Enter a valid email address" }).max(200).optional().or(z.literal("")),
+  stateId: z.enum(["up", "bihar"]),
+  districtId,
+  consent: z.boolean().refine((value) => value, {
+    message: "Please confirm this request contains no private information.",
+  }),
+}).refine((value) => value.optionsHi.length === value.optionsEn.length, {
+  message: "Hindi and English options must have the same number of entries.",
+  path: ["optionsEn"],
+});
+
+export const pollCreateSchema = z.object({
+  question: localizedText(10, 200),
+  description: localizedText(10, 600),
+  category: z.enum(["civic", "awareness", "services", "local"]),
+  closesAt: isoDate,
+  options: z.array(localizedText(1, 90)).min(2).max(6),
+  featured: z.boolean().optional(),
+  sponsored: z.boolean().optional(),
+  sponsorLabel: localizedText(2, 80).nullable().optional(),
+});
+
+export const pollManageSchema = z.object({
+  id: z.string().min(1).max(64),
+  action: z.enum(["publish", "close", "archive", "feature", "unfeature"]),
+});
+
+export const pollRequestModerateSchema = z.object({
+  id: z.string().min(1).max(64),
+  action: z.enum(["approve", "reject", "publish"]),
+  note: z.string().trim().max(300).optional().or(z.literal("")),
+  /** When publishing, optionally create the public poll from the request. */
+  closesAt: isoDate.optional(),
+});
+
+export const announcementInputSchema = z.object({
+  id: z.string().min(1).max(64).optional(),
+  title: localizedText(4, 160),
+  body: localizedText(20, 4000),
+  category: z.enum(announcementCategories),
+  stateId: z.enum(["up", "bihar"]).nullable().optional(),
+  districtId: districtId.nullable().optional(),
+  sourceLabel: z.string().trim().max(120).optional().or(z.literal("")),
+  sourceUrl: httpUrl.optional().or(z.literal("")),
+  imageUrl: httpUrl.optional().or(z.literal("")),
+  status: z.enum(announcementStatuses),
+  publishAt: optionalIsoDate,
+});
+
+export const announcementManageSchema = z.object({
+  id: z.string().min(1).max(64),
+  action: z.enum(["publish", "unpublish", "archive", "delete"]),
+});
+
+export const buzzInputSchema = z.object({
+  id: z.string().min(1).max(64).optional(),
+  title: localizedText(4, 160),
+  summary: localizedText(10, 600),
+  body: localizedText(0, 4000),
+  category: z.enum(buzzCategories),
+  platform: cleanText(2, 60),
+  sourceUrl: httpUrl.optional().or(z.literal("")),
+  imageUrl: httpUrl.optional().or(z.literal("")),
+  status: z.enum(["draft", "published"]),
+});
+
+export const buzzLinkSchema = z.object({
+  title: cleanText(6, 160),
+  sourceUrl: httpUrl,
+  platform: cleanText(2, 60),
+  category: z.enum(buzzCategories),
+  note: z.string().trim().max(300).optional().or(z.literal("")),
+});
+
+export const buzzManageSchema = z.object({
+  id: z.string().min(1).max(64),
+  action: z.enum(["publish", "unpublish", "delete"]),
+});
+
+export const adInquirySchema = z.object({
+  advertiserName: cleanText(2, 120),
+  email: z.string().trim().email({ message: "Enter a valid email address" }).max(200),
+  phone: z
+    .string()
+    .trim()
+    .regex(/^[0-9+\- ]{7,20}$/, { message: "Enter a valid phone number" }),
+  objective: cleanText(20, 800),
+  budgetRange: z.enum(["under_10k", "10k_50k", "50k_1l", "above_1l", "discuss"]),
+  placement: z.enum(["homepage", "polls", "trending", "updates", "newsletter"]),
+  destinationUrl: httpUrl,
+  creativeUrl: httpUrl.optional().or(z.literal("")),
+  campaignStart: optionalIsoDate,
+  campaignEnd: optionalIsoDate,
+  consent: z.boolean().refine((value) => value, {
+    message: "Please confirm this inquiry contains no confidential information.",
+  }),
+});
+
+export const adManageSchema = z.object({
+  id: z.string().min(1).max(64),
+  action: z.enum(["approve", "reject", "verify_payment", "activate", "pause", "resume", "expire", "delete"]),
+  note: z.string().trim().max(400).optional().or(z.literal("")),
+});
+
+export const registerSchema = z.object({
+  email: z.string().trim().toLowerCase().email({ message: "Enter a valid email address" }).max(200),
+  displayName: cleanText(2, 60),
+  password: z
+    .string()
+    .min(10, { message: "Password must be at least 10 characters." })
+    .max(200)
+    .refine((value) => /[a-zA-Z]/.test(value) && /[0-9]/.test(value), {
+      message: "Password must include a letter and a number.",
+    }),
+});
+
+export const loginSchema = z.object({
+  email: z.string().trim().toLowerCase().email({ message: "Enter a valid email address" }).max(200),
+  password: z.string().min(1).max(200),
+});
+
+export const profileSchema = z.object({
+  displayName: cleanText(2, 60),
+  stateId: z.enum(["up", "bihar"]).optional().or(z.literal("")),
+  districtId: districtId.optional().or(z.literal("")),
+  pin,
+  area: z.string().trim().max(80).optional().or(z.literal("")),
+});
+
+export const quizScoreSchema = z.object({
+  quizSlug: z.string().trim().min(2).max(60),
+  answers: z.array(z.coerce.number().int().min(-1).max(20)).min(1).max(50),
+});
+
+export const dailyAnswerSchema = z.object({
+  questionId: z.string().trim().min(1).max(80),
+  optionIndex: z.coerce.number().int().min(0).max(20),
+});
+
 export type IssueInput = z.infer<typeof issueInputSchema>;
 export type ReviewInput = z.infer<typeof reviewInputSchema>;
 export type ThreadInput = z.infer<typeof threadInputSchema>;

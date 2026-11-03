@@ -29,7 +29,7 @@ type Message = {
 let counter = 0;
 
 export function AssistantPage() {
-  const { locale } = useLocale();
+  const { locale, t } = useLocale();
   const { label } = useLocation();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -131,6 +131,11 @@ export function AssistantPage() {
   return (
     <div className="container-page grid gap-6 py-8 sm:py-10 lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start">
       <div className="flex min-h-[32rem] flex-col rounded-2xl border border-navy-100 bg-white shadow-card">
+        <div className="border-b border-navy-100 bg-navy-50 px-4 py-2.5">
+          <p className="text-[0.68rem] leading-relaxed text-navy-600" role="note">
+            {t.assistant.disclaimer}
+          </p>
+        </div>
         <div className="flex items-center gap-2 border-b border-navy-100 px-4 py-3">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-100 text-brand-700">
             <IconSpark className="h-5 w-5" />

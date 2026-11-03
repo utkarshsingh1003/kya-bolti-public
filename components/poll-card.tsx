@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useLocale } from "@/components/locale-context";
 import { pick } from "@/lib/i18n";
@@ -17,7 +18,15 @@ type PollResponse = {
   reason?: string;
 };
 
-export function PollCard({ initial, compact = false }: { initial: PollWithResults; compact?: boolean }) {
+export function PollCard({
+  initial,
+  compact = false,
+  authenticated = true,
+}: {
+  initial: PollWithResults;
+  compact?: boolean;
+  authenticated?: boolean;
+}) {
   const { locale, t } = useLocale();
   const [poll, setPoll] = useState(initial);
   const [selected, setSelected] = useState<string | null>(null);
@@ -57,9 +66,9 @@ export function PollCard({ initial, compact = false }: { initial: PollWithResult
       setShowResults(true);
       setMessage(t.polls.thanks);
       setStatus("idle");
-    } catch {
+    } catch (err) {
       setStatus("error");
-      setMessage(t.common.error);
+      setMessage(err instanceof Error ? err.message : t.common.error);
     }
   }
 
@@ -75,6 +84,7 @@ export function PollCard({ initial, compact = false }: { initial: PollWithResult
         <Badge tone="brand">
           <IconPoll className="h-3 w-3" /> {locale === "hi" ? "सामुदायिक पोल" : "Community poll"}
         </Badge>
+        {poll.poll.sponsored ? <Badge tone="gold">{t.polls.sponsored}</Badge> : null}
         {poll.poll.isDemo ? <DemoBadge label={t.polls.demo} /> : null}
         <span className="ml-auto text-[0.66rem] text-navy-400">
           {t.polls.closes}: {formatDate(poll.poll.closesAt, locale)}
@@ -146,7 +156,7 @@ export function PollCard({ initial, compact = false }: { initial: PollWithResult
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
-        {!poll.hasVoted && !closed ? (
+        {!poll.hasVoted && !closed && authenticated ? (
           <button
             type="button"
             onClick={vote}
@@ -155,6 +165,11 @@ export function PollCard({ initial, compact = false }: { initial: PollWithResult
           >
             {status === "voting" ? t.common.sending : t.polls.vote}
           </button>
+        ) : null}
+        {!poll.hasVoted && !closed && !authenticated ? (
+          <Link href="/account" className={buttonClass("primary", "sm")}>
+            {t.polls.loginToVote}
+          </Link>
         ) : null}
         {!reveal ? (
           <button type="button" onClick={() => setShowResults(true)} className={buttonClass("ghost", "sm")}>

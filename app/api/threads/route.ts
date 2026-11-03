@@ -1,8 +1,9 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { getRepository } from "@/lib/store";
+import { getRepository, isPersistentMode } from "@/lib/store";
 import { districtMatchesState, mutationGuard, noStore, readJson, validationError } from "@/lib/api";
 import { looksLikeAbuse, looksLikeSpam, threadInputSchema } from "@/lib/validation";
+import { sessionUserIdFromRequest } from "@/lib/accounts";
 
 export const dynamic = "force-dynamic";
 
@@ -29,9 +30,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "This post contains blocked content or spam." }, { status: 422 });
   }
   const repo = await getRepository();
-  const thread = await repo.createThread(parsed.data);
+  const thread = await repo.createThread(parsed.data, sessionUserIdFromRequest(request));
   return noStore(
-    { ok: true, thread, persistent: repo.mode !== "memory", storage: repo.mode },
+    { ok: true, thread, persistent: isPersistentMode(repo.mode), storage: repo.mode },
     { status: 201 },
   );
 }

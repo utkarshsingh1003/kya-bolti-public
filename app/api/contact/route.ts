@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { getRepository } from "@/lib/store";
+import { getRepository, isPersistentMode } from "@/lib/store";
 import { mutationGuard, noStore, readJson, validationError } from "@/lib/api";
 import { contactInputSchema, looksLikeAbuse, looksLikeSpam } from "@/lib/validation";
 
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     {
       ok: true,
       id: message.id,
-      persistent: repo.mode !== "memory",
+      persistent: isPersistentMode(repo.mode),
       storage: repo.mode,
     },
     { status: 201 },

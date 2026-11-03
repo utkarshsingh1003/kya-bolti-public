@@ -1,5 +1,14 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { JsonRepository } from "@/lib/store";
+import { JsonRepository, isPersistentMode } from "@/lib/store";
+
+describe("storage modes", () => {
+  it("only postgres and file are persistent", () => {
+    expect(isPersistentMode("postgres")).toBe(true);
+    expect(isPersistentMode("file")).toBe(true);
+    expect(isPersistentMode("memory")).toBe(false);
+    expect(isPersistentMode("demo")).toBe(false);
+  });
+});
 
 const issueInput = {
   category: "roads" as const,

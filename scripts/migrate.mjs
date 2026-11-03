@@ -4,11 +4,15 @@
  * transaction and records applied files in schema_migrations.
  *
  * Usage: DATABASE_URL=postgres://... npm run db:migrate
+ * Also reads DATABASE_URL from .env.local / .env when the process env is unset.
  */
-import fs from "node:fs/promises";
+import fsp from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import pg from "pg";
+import { applyLocalDatabaseEnv, postgresPoolOptions } from "../lib/postgres-config.ts";
+
+applyLocalDatabaseEnv(process.cwd());
 
 const { Pool } = pg;
 const connectionString = process.env.DATABASE_URL;
@@ -18,11 +22,7 @@ if (!connectionString) {
   process.exit(1);
 }
 
-const pool = new Pool({
-  connectionString,
-  max: 1,
-  ssl: connectionString.includes("sslmode=require") ? { rejectUnauthorized: true } : undefined,
-});
+const pool = new Pool(postgresPoolOptions(connectionString, { max: 1 }));
 
 const dir = path.join(process.cwd(), "db", "migrations");
 
@@ -32,7 +32,7 @@ try {
     applied_at timestamptz not null default now()
   )`);
 
-  const files = (await fs.readdir(dir)).filter((file) => file.endsWith(".sql")).sort();
+  const files = (await fsp.readdir(dir)).filter((file) => file.endsWith(".sql")).sort();
   const applied = new Set(
     (await pool.query("select filename from schema_migrations")).rows.map((row) => row.filename),
   );
@@ -42,7 +42,7 @@ try {
       console.log(`skip ${file}`);
       continue;
     }
-    const sql = await fs.readFile(path.join(dir, file), "utf8");
+    const sql = await fsp.readFile(path.join(dir, file), "utf8");
     const client = await pool.connect();
     try {
       await client.query("begin");

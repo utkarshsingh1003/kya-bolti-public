@@ -17,6 +17,8 @@ const columns = [
       { href: "/polls", hi: "सामुदायिक पोल", en: "Polls" },
       { href: "/games", hi: "नागरिक खेल", en: "Civic games" },
       { href: "/discussions", hi: "चर्चा", en: "Discussions" },
+      { href: "/updates", hi: "सार्वजनिक अपडेट", en: "Public Updates" },
+      { href: "/trending", hi: "ट्रेंडिंग बज़", en: "Trending Buzz" },
     ],
   },
   {
@@ -28,6 +30,7 @@ const columns = [
       { href: "/assistant", hi: "जनता साथी", en: "Janata Saathi" },
       { href: "/search", hi: "खोजें", en: "Search" },
       { href: "/sources", hi: "स्रोत और श्रेय", en: "Sources & attribution" },
+      { href: "/advertise", hi: "विज्ञापन", en: "Advertise" },
     ],
   },
   {
@@ -40,6 +43,7 @@ const columns = [
       { href: "/terms", hi: "उपयोग की शर्तें", en: "Terms of use" },
       { href: "/corrections", hi: "सुधार नीति", en: "Corrections" },
       { href: "/guidelines", hi: "सामुदायिक दिशानिर्देश", en: "Community guidelines" },
+      { href: "/account", hi: "मेरा खाता", en: "My account" },
     ],
   },
 ] as const;

@@ -1,0 +1,26 @@
+import type { Metadata } from "next";
+import { PageHeader } from "@/components/ui";
+import { BuzzExplorer } from "@/components/buzz-explorer";
+import { BuzzLinkForm } from "@/components/buzz-link-form";
+
+export const metadata: Metadata = {
+  title: "ट्रेंडिंग बज़",
+  description: "संपादकीय रूप से स्वीकृत ट्रेंडिंग बज़, खबरें और सार्वजनिक मुद्दे।",
+  alternates: { canonical: "/trending" },
+};
+
+export default function TrendingPage() {
+  return (
+    <>
+      <PageHeader
+        eyebrow="ट्रेंडिंग बज़"
+        title="Trending Buzz"
+        description="संपादकीय रूप से स्वीकृत ट्रेंडिंग बज़ — खबरें, मनोरंजन, खेल और सार्वजनिक मुद्दों से, मूल स्रोत सहित।"
+      />
+      <BuzzExplorer />
+      <div className="container-page pb-12">
+        <BuzzLinkForm />
+      </div>
+    </>
+  );
+}

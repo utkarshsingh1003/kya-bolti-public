@@ -1,16 +1,25 @@
 import { Pool, type PoolClient } from "pg";
 import type {
+  AdInquiry,
+  Announcement,
+  BuzzPost,
   CivicIssue,
   ContactMessage,
   IssueStatus,
+  LeaderboardEntry,
   Poll,
+  PollRequest,
+  PollRequestStatus,
+  PublicUser,
   Question,
+  QuizScore,
   Reply,
   Representative,
   Report,
   Review,
   SiteStats,
   Thread,
+  User,
 } from "@/lib/types";
 import {
   demoIssues,
@@ -22,14 +31,20 @@ import {
 } from "@/data/seed";
 import type { ContactInput, QuestionInput, ThreadInput } from "@/lib/validation";
 import type {
+  AdInquiryInput,
+  AnnouncementInput,
+  BuzzInput,
   IssueFilter,
   ListFilter,
   NewIssue,
   NewReview,
+  PollCreateInput,
+  PollRequestInput,
   Repository,
   VoteOutcome,
 } from "./index";
 import { trackingCode } from "./index";
+import { postgresPoolOptions } from "@/lib/postgres-config";
 
 type Row = Record<string, unknown>;
 
@@ -51,6 +66,118 @@ function mapPoll(row: Row, options: Row[]): Poll {
       id: text(option.id),
       label: { hi: text(option.label_hi), en: text(option.label_en) },
     })),
+    status: (text(row.status) || "published") as Poll["status"],
+    featured: Boolean(row.featured),
+    sponsored: Boolean(row.sponsored),
+    sponsorLabel: row.sponsor_label_hi
+      ? { hi: text(row.sponsor_label_hi), en: text(row.sponsor_label_en) }
+      : null,
+  };
+}
+
+function mapPollRequest(row: Row): PollRequest {
+  return {
+    id: text(row.id),
+    questionHi: text(row.question_hi),
+    questionEn: text(row.question_en),
+    optionsHi: (row.options_hi as string[]) ?? [],
+    optionsEn: (row.options_en as string[]) ?? [],
+    category: text(row.category),
+    purpose: text(row.purpose),
+    contact: row.contact ? text(row.contact) : null,
+    stateId: text(row.state_id),
+    districtId: text(row.district_id),
+    status: text(row.status) as PollRequestStatus,
+    adminNote: row.admin_note ? text(row.admin_note) : null,
+    createdPollId: row.created_poll_id ? text(row.created_poll_id) : null,
+    ownerId: row.owner_id ? text(row.owner_id) : null,
+    createdAt: iso(row.created_at),
+    updatedAt: iso(row.updated_at),
+  };
+}
+
+function mapAnnouncement(row: Row): Announcement {
+  return {
+    id: text(row.id),
+    title: { hi: text(row.title_hi), en: text(row.title_en) },
+    body: { hi: text(row.body_hi), en: text(row.body_en) },
+    category: text(row.category) as Announcement["category"],
+    stateId: row.state_id ? text(row.state_id) : null,
+    districtId: row.district_id ? text(row.district_id) : null,
+    sourceLabel: row.source_label ? text(row.source_label) : null,
+    sourceUrl: row.source_url ? text(row.source_url) : null,
+    imageUrl: row.image_url ? text(row.image_url) : null,
+    status: text(row.status) as Announcement["status"],
+    publishAt: isoOrNull(row.publish_at),
+    createdAt: iso(row.created_at),
+    updatedAt: iso(row.updated_at),
+  };
+}
+
+function mapBuzz(row: Row): BuzzPost {
+  return {
+    id: text(row.id),
+    title: { hi: text(row.title_hi), en: text(row.title_en) },
+    summary: { hi: text(row.summary_hi), en: text(row.summary_en) },
+    body: { hi: text(row.body_hi), en: text(row.body_en) },
+    category: text(row.category) as BuzzPost["category"],
+    platform: text(row.platform),
+    sourceUrl: row.source_url ? text(row.source_url) : null,
+    imageUrl: row.image_url ? text(row.image_url) : null,
+    status: text(row.status) as BuzzPost["status"],
+    origin: (text(row.origin) || "admin") as BuzzPost["origin"],
+    submittedBy: row.submitted_by ? text(row.submitted_by) : null,
+    createdAt: iso(row.created_at),
+    updatedAt: iso(row.updated_at),
+    publishedAt: isoOrNull(row.published_at),
+  };
+}
+
+function mapAd(row: Row): AdInquiry {
+  return {
+    id: text(row.id),
+    advertiserName: text(row.advertiser_name),
+    email: text(row.email),
+    phone: text(row.phone),
+    objective: text(row.objective),
+    budgetRange: text(row.budget_range),
+    placement: text(row.placement),
+    destinationUrl: text(row.destination_url),
+    creativeUrl: row.creative_url ? text(row.creative_url) : null,
+    campaignStart: isoOrNull(row.campaign_start),
+    campaignEnd: isoOrNull(row.campaign_end),
+    status: text(row.status) as AdInquiry["status"],
+    paymentStatus: text(row.payment_status) as AdInquiry["paymentStatus"],
+    adminNote: row.admin_note ? text(row.admin_note) : null,
+    createdAt: iso(row.created_at),
+    updatedAt: iso(row.updated_at),
+  };
+}
+
+function mapUser(row: Row): User {
+  return {
+    id: text(row.id),
+    email: text(row.email),
+    displayName: text(row.display_name),
+    passwordHash: text(row.password_hash),
+    stateId: row.state_id ? text(row.state_id) : null,
+    districtId: row.district_id ? text(row.district_id) : null,
+    pin: row.pin ? text(row.pin) : null,
+    area: row.area ? text(row.area) : null,
+    createdAt: iso(row.created_at),
+    updatedAt: iso(row.updated_at),
+  };
+}
+
+function mapQuizScore(row: Row): QuizScore {
+  return {
+    id: text(row.id),
+    userId: text(row.user_id),
+    quizSlug: text(row.quiz_slug),
+    score: Number(row.score),
+    total: Number(row.total),
+    createdAt: iso(row.created_at),
+    updatedAt: iso(row.updated_at),
   };
 }
 
@@ -71,6 +198,7 @@ function mapIssue(row: Row): CivicIssue {
     updatedAt: iso(row.updated_at),
     officialComplaintUrl: row.official_complaint_url ? text(row.official_complaint_url) : null,
     events: (row.events as CivicIssue["events"]) ?? [],
+    ownerId: row.owner_id ? text(row.owner_id) : null,
   };
 }
 
@@ -88,6 +216,7 @@ function mapReview(row: Row): Review {
     status: text(row.status) as Review["status"],
     isDemo: Boolean(row.is_demo),
     createdAt: iso(row.created_at),
+    ownerId: row.owner_id ? text(row.owner_id) : null,
   };
 }
 
@@ -104,6 +233,7 @@ function mapThread(row: Row): Thread {
     createdAt: iso(row.created_at),
     replyCount: Number(row.reply_count),
     status: text(row.status) === "hidden" ? "hidden" : "published",
+    ownerId: row.owner_id ? text(row.owner_id) : null,
   };
 }
 
@@ -130,6 +260,7 @@ function mapQuestion(row: Row): Question {
     stateId: row.state_id ? text(row.state_id) : null,
     isDemo: Boolean(row.is_demo),
     createdAt: iso(row.created_at),
+    ownerId: row.owner_id ? text(row.owner_id) : null,
   };
 }
 
@@ -226,7 +357,9 @@ class PostgresRepository implements Repository {
   }
 
   async listPolls(): Promise<Poll[]> {
-    const polls = await this.query("select * from polls order by created_at desc");
+    const polls = await this.query(
+      "select * from polls where status is null or status not in ('draft','archived') order by created_at desc",
+    );
     const options = await this.query("select * from poll_options order by sort_order asc");
     return polls.map((poll) =>
       mapPoll(poll, options.filter((option) => option.poll_id === poll.id)),
@@ -309,7 +442,7 @@ class PostgresRepository implements Repository {
     return rows[0] ? mapIssue(rows[0]) : null;
   }
 
-  async createIssue(input: NewIssue): Promise<CivicIssue> {
+  async createIssue(input: NewIssue, ownerId?: string | null): Promise<CivicIssue> {
     let code = trackingCode();
     for (let attempt = 0; attempt < 5; attempt += 1) {
       const existing = await this.query("select 1 from issues where tracking_code = $1", [code]);
@@ -321,9 +454,9 @@ class PostgresRepository implements Repository {
       { status: "submitted", note: "समस्या दर्ज हुई। कृपया ट्रैकिंग कोड सहेजें।", createdAt: now },
     ];
     const rows = await this.query(
-      `insert into issues (id,tracking_code,category,title,description,area,district_id,state_id,pin,status,is_demo,created_at,updated_at,official_complaint_url,events)
-       values (gen_random_uuid()::text,$1,$2,$3,$4,$5,$6,$7,$8,'submitted',false,$9,$9,$10,$11) returning *`,
-      [code, input.category, input.title, input.description, input.area, input.districtId, input.stateId, input.pin ?? null, now, input.officialComplaintUrl || null, JSON.stringify(events)],
+      `insert into issues (id,tracking_code,category,title,description,area,district_id,state_id,pin,status,is_demo,created_at,updated_at,official_complaint_url,events,owner_id)
+       values (gen_random_uuid()::text,$1,$2,$3,$4,$5,$6,$7,$8,'submitted',false,$9,$9,$10,$11,$12) returning *`,
+      [code, input.category, input.title, input.description, input.area, input.districtId, input.stateId, input.pin ?? null, now, input.officialComplaintUrl || null, JSON.stringify(events), ownerId ?? null],
     );
     return mapIssue(rows[0]);
   }
@@ -359,11 +492,11 @@ class PostgresRepository implements Repository {
     return rows.map(mapReview);
   }
 
-  async createReview(input: NewReview): Promise<Review> {
+  async createReview(input: NewReview, ownerId?: string | null): Promise<Review> {
     const rows = await this.query(
-      `insert into reviews (id,service_category,rating,title,body,area,district_id,state_id,display_name,status,is_demo,created_at)
-       values (gen_random_uuid()::text,$1,$2,$3,$4,$5,$6,$7,$8,'published',false,now()) returning *`,
-      [input.serviceCategory, input.rating, input.title, input.body, input.area, input.districtId, input.stateId, input.displayName || null],
+      `insert into reviews (id,service_category,rating,title,body,area,district_id,state_id,display_name,status,is_demo,created_at,owner_id)
+       values (gen_random_uuid()::text,$1,$2,$3,$4,$5,$6,$7,$8,'published',false,now(),$9) returning *`,
+      [input.serviceCategory, input.rating, input.title, input.body, input.area, input.districtId, input.stateId, input.displayName || null, ownerId ?? null],
     );
     return mapReview(rows[0]);
   }
@@ -402,11 +535,11 @@ class PostgresRepository implements Repository {
     return { thread: mapThread(threads[0]), replies: replies.map(mapReply) };
   }
 
-  async createThread(input: ThreadInput): Promise<Thread> {
+  async createThread(input: ThreadInput, ownerId?: string | null): Promise<Thread> {
     const rows = await this.query(
-      `insert into threads (id,title,body,category,district_id,state_id,author_alias,is_demo,created_at,reply_count,status)
-       values (gen_random_uuid()::text,$1,$2,$3,$4,$5,$6,false,now(),0,'published') returning *`,
-      [input.title, input.body, input.category, input.districtId, input.stateId, input.authorAlias],
+      `insert into threads (id,title,body,category,district_id,state_id,author_alias,is_demo,created_at,reply_count,status,owner_id)
+       values (gen_random_uuid()::text,$1,$2,$3,$4,$5,$6,false,now(),0,'published',$7) returning *`,
+      [input.title, input.body, input.category, input.districtId, input.stateId, input.authorAlias, ownerId ?? null],
     );
     return mapThread(rows[0]);
   }
@@ -465,11 +598,11 @@ class PostgresRepository implements Repository {
     return rows.map(mapQuestion);
   }
 
-  async createQuestion(input: QuestionInput): Promise<Question> {
+  async createQuestion(input: QuestionInput, ownerId?: string | null): Promise<Question> {
     const rows = await this.query(
-      `insert into questions (id,question,answer,answer_status,sources,district_id,state_id,is_demo,created_at)
-       values (gen_random_uuid()::text,$1,null,'pending','[]'::jsonb,$2,$3,false,now()) returning *`,
-      [input.question, input.districtId || null, input.stateId || null],
+      `insert into questions (id,question,answer,answer_status,sources,district_id,state_id,is_demo,created_at,owner_id)
+       values (gen_random_uuid()::text,$1,null,'pending','[]'::jsonb,$2,$3,false,now(),$4) returning *`,
+      [input.question, input.districtId || null, input.stateId || null, ownerId ?? null],
     );
     return mapQuestion(rows[0]);
   }
@@ -609,6 +742,419 @@ class PostgresRepository implements Repository {
     }
   }
 
+  async listAllPolls(): Promise<Poll[]> {
+    const polls = await this.query("select * from polls order by created_at desc");
+    const options = await this.query("select * from poll_options order by sort_order asc");
+    return polls.map((poll) => mapPoll(poll, options.filter((option) => option.poll_id === poll.id)));
+  }
+
+  async createPoll(input: PollCreateInput): Promise<Poll> {
+    const client = await this.pool.connect();
+    try {
+      await client.query("begin");
+      const inserted = await client.query(
+        `insert into polls (id,question_hi,question_en,description_hi,description_en,category,closes_at,is_demo,created_at,status,featured,sponsored,sponsor_label_hi,sponsor_label_en)
+         values (gen_random_uuid()::text,$1,$2,$3,$4,$5,$6,false,now(),'published',$7,$8,$9,$10) returning *`,
+        [
+          input.question.hi,
+          input.question.en,
+          input.description.hi,
+          input.description.en,
+          input.category,
+          input.closesAt,
+          input.featured ?? false,
+          input.sponsored ?? false,
+          input.sponsorLabel?.hi ?? null,
+          input.sponsorLabel?.en ?? null,
+        ],
+      );
+      const pollId = text((inserted.rows[0] as Row).id);
+      for (const [index, option] of input.options.entries()) {
+        await client.query(
+          `insert into poll_options (id,poll_id,label_hi,label_en,sort_order)
+           values (gen_random_uuid()::text,$1,$2,$3,$4)`,
+          [pollId, option.hi, option.en, index],
+        );
+      }
+      await client.query("commit");
+      const poll = await this.getPoll(pollId);
+      return poll!;
+    } catch (error) {
+      await client.query("rollback");
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  async updatePollStatus(id: string, action: "publish" | "close" | "archive" | "feature" | "unfeature") {
+    const assignments: Record<typeof action, string> = {
+      publish: "status='published'",
+      close: "status='closed'",
+      archive: "status='archived'",
+      feature: "featured=true",
+      unfeature: "featured=false",
+    };
+    const rows = await this.query(`update polls set ${assignments[action]} where id=$1 returning *`, [id]);
+    if (!rows[0]) return null;
+    const options = await this.query("select * from poll_options where poll_id=$1 order by sort_order asc", [id]);
+    return mapPoll(rows[0], options);
+  }
+
+  async createPollRequest(input: PollRequestInput): Promise<PollRequest> {
+    const rows = await this.query(
+      `insert into poll_requests (id,question_hi,question_en,options_hi,options_en,category,purpose,contact,state_id,district_id,status,owner_id,created_at,updated_at)
+       values (gen_random_uuid()::text,$1,$2,$3::jsonb,$4::jsonb,$5,$6,$7,$8,$9,'pending',$10,now(),now()) returning *`,
+      [
+        input.questionHi,
+        input.questionEn,
+        JSON.stringify(input.optionsHi),
+        JSON.stringify(input.optionsEn),
+        input.category,
+        input.purpose,
+        input.contact || null,
+        input.stateId,
+        input.districtId,
+        input.ownerId ?? null,
+      ],
+    );
+    return mapPollRequest(rows[0]!);
+  }
+
+  async listPollRequests(): Promise<PollRequest[]> {
+    const rows = await this.query("select * from poll_requests order by created_at desc limit 200");
+    return rows.map(mapPollRequest);
+  }
+
+  async listPublicPollRequests(): Promise<PollRequest[]> {
+    const rows = await this.query(
+      "select * from poll_requests where status in ('approved','published') order by created_at desc limit 50",
+    );
+    return rows.map(mapPollRequest);
+  }
+
+  async setPollRequestStatus(id: string, status: PollRequestStatus, note?: string | null, createdPollId?: string | null) {
+    const rows = await this.query(
+      `update poll_requests set status=$2, admin_note=coalesce($3,admin_note), created_poll_id=coalesce($4,created_poll_id), updated_at=now()
+       where id=$1 returning *`,
+      [id, status, note ?? null, createdPollId ?? null],
+    );
+    return rows[0] ? mapPollRequest(rows[0]) : null;
+  }
+
+  async createAnnouncement(input: AnnouncementInput): Promise<Announcement> {
+    const rows = await this.query(
+      `insert into announcements (id,title_hi,title_en,body_hi,body_en,category,state_id,district_id,source_label,source_url,image_url,status,publish_at,created_at,updated_at)
+       values (gen_random_uuid()::text,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,now(),now()) returning *`,
+      [
+        input.title.hi,
+        input.title.en,
+        input.body.hi,
+        input.body.en,
+        input.category,
+        input.stateId ?? null,
+        input.districtId ?? null,
+        input.sourceLabel ?? null,
+        input.sourceUrl ?? null,
+        input.imageUrl ?? null,
+        input.status,
+        input.publishAt ?? null,
+      ],
+    );
+    return mapAnnouncement(rows[0]!);
+  }
+
+  async updateAnnouncement(id: string, patch: Partial<AnnouncementInput>): Promise<Announcement | null> {
+    const current = await this.query("select * from announcements where id=$1", [id]);
+    if (!current[0]) return null;
+    const existing = mapAnnouncement(current[0]);
+    const merged = {
+      title_hi: patch.title?.hi ?? existing.title.hi,
+      title_en: patch.title?.en ?? existing.title.en,
+      body_hi: patch.body?.hi ?? existing.body.hi,
+      body_en: patch.body?.en ?? existing.body.en,
+      category: patch.category ?? existing.category,
+      state_id: patch.stateId !== undefined ? patch.stateId : existing.stateId,
+      district_id: patch.districtId !== undefined ? patch.districtId : existing.districtId,
+      source_label: patch.sourceLabel !== undefined ? patch.sourceLabel : existing.sourceLabel,
+      source_url: patch.sourceUrl !== undefined ? patch.sourceUrl : existing.sourceUrl,
+      image_url: patch.imageUrl !== undefined ? patch.imageUrl : existing.imageUrl,
+      status: patch.status ?? existing.status,
+      publish_at: patch.publishAt !== undefined ? patch.publishAt : existing.publishAt,
+    };
+    const rows = await this.query(
+      `update announcements set title_hi=$2,title_en=$3,body_hi=$4,body_en=$5,category=$6,state_id=$7,district_id=$8,
+         source_label=$9,source_url=$10,image_url=$11,status=$12,publish_at=$13,updated_at=now() where id=$1 returning *`,
+      [
+        id,
+        merged.title_hi,
+        merged.title_en,
+        merged.body_hi,
+        merged.body_en,
+        merged.category,
+        merged.state_id,
+        merged.district_id,
+        merged.source_label,
+        merged.source_url,
+        merged.image_url,
+        merged.status,
+        merged.publish_at,
+      ],
+    );
+    return rows[0] ? mapAnnouncement(rows[0]) : null;
+  }
+
+  async listAnnouncements(publicOnly = false): Promise<Announcement[]> {
+    const rows = await this.query(
+      publicOnly
+        ? "select * from announcements where status='published' and (publish_at is null or publish_at <= now()) order by coalesce(publish_at,created_at) desc limit 100"
+        : "select * from announcements order by created_at desc limit 200",
+    );
+    return rows.map(mapAnnouncement);
+  }
+
+  async setAnnouncementStatus(id: string, status: Announcement["status"]) {
+    const rows = await this.query("update announcements set status=$2, updated_at=now() where id=$1 returning id", [id, status]);
+    return rows.length > 0;
+  }
+
+  async deleteAnnouncement(id: string) {
+    const rows = await this.query("delete from announcements where id=$1 returning id", [id]);
+    return rows.length > 0;
+  }
+
+  async createBuzzPost(input: BuzzInput): Promise<BuzzPost> {
+    const rows = await this.query(
+      `insert into buzz_posts (id,title_hi,title_en,summary_hi,summary_en,body_hi,body_en,category,platform,source_url,image_url,status,origin,submitted_by,created_at,updated_at,published_at)
+       values (gen_random_uuid()::text,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,now(),now(),case when $11='published' then now() else null end) returning *`,
+      [
+        input.title.hi,
+        input.title.en,
+        input.summary.hi,
+        input.summary.en,
+        input.body.hi,
+        input.body.en,
+        input.category,
+        input.platform,
+        input.sourceUrl ?? null,
+        input.imageUrl ?? null,
+        input.status,
+        input.origin ?? "admin",
+        input.submittedBy ?? null,
+      ],
+    );
+    return mapBuzz(rows[0]!);
+  }
+
+  async updateBuzzPost(id: string, patch: Partial<BuzzInput>): Promise<BuzzPost | null> {
+    const current = await this.query("select * from buzz_posts where id=$1", [id]);
+    if (!current[0]) return null;
+    const existing = mapBuzz(current[0]);
+    const status = patch.status ?? existing.status;
+    const rows = await this.query(
+      `update buzz_posts set title_hi=$2,title_en=$3,summary_hi=$4,summary_en=$5,body_hi=$6,body_en=$7,category=$8,platform=$9,
+         source_url=$10,image_url=$11,status=$12,
+         published_at=case when $12='published' and published_at is null then now() else published_at end,
+         updated_at=now() where id=$1 returning *`,
+      [
+        id,
+        patch.title?.hi ?? existing.title.hi,
+        patch.title?.en ?? existing.title.en,
+        patch.summary?.hi ?? existing.summary.hi,
+        patch.summary?.en ?? existing.summary.en,
+        patch.body?.hi ?? existing.body.hi,
+        patch.body?.en ?? existing.body.en,
+        patch.category ?? existing.category,
+        patch.platform ?? existing.platform,
+        patch.sourceUrl !== undefined ? patch.sourceUrl : existing.sourceUrl,
+        patch.imageUrl !== undefined ? patch.imageUrl : existing.imageUrl,
+        status,
+      ],
+    );
+    return rows[0] ? mapBuzz(rows[0]) : null;
+  }
+
+  async listBuzzPosts(publicOnly = false): Promise<BuzzPost[]> {
+    const rows = await this.query(
+      publicOnly
+        ? "select * from buzz_posts where status='published' order by coalesce(published_at,created_at) desc limit 100"
+        : "select * from buzz_posts order by created_at desc limit 200",
+    );
+    return rows.map(mapBuzz);
+  }
+
+  async setBuzzStatus(id: string, status: BuzzPost["status"]) {
+    const rows = await this.query(
+      `update buzz_posts set status=$2, published_at=case when $2='published' and published_at is null then now() else published_at end, updated_at=now() where id=$1 returning id`,
+      [id, status],
+    );
+    return rows.length > 0;
+  }
+
+  async deleteBuzzPost(id: string) {
+    const rows = await this.query("delete from buzz_posts where id=$1 returning id", [id]);
+    return rows.length > 0;
+  }
+
+  async createAdInquiry(input: AdInquiryInput): Promise<AdInquiry> {
+    const rows = await this.query(
+      `insert into ad_inquiries (id,advertiser_name,email,phone,objective,budget_range,placement,destination_url,creative_url,campaign_start,campaign_end,status,payment_status,created_at,updated_at)
+       values (gen_random_uuid()::text,$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'pending','unpaid',now(),now()) returning *`,
+      [
+        input.advertiserName,
+        input.email,
+        input.phone,
+        input.objective,
+        input.budgetRange,
+        input.placement,
+        input.destinationUrl,
+        input.creativeUrl || null,
+        input.campaignStart ?? null,
+        input.campaignEnd ?? null,
+      ],
+    );
+    return mapAd(rows[0]!);
+  }
+
+  async listAdInquiries(): Promise<AdInquiry[]> {
+    const rows = await this.query("select * from ad_inquiries order by created_at desc limit 200");
+    return rows.map(mapAd);
+  }
+
+  async updateAdInquiry(
+    id: string,
+    patch: { status?: AdInquiry["status"]; paymentStatus?: AdInquiry["paymentStatus"]; adminNote?: string | null },
+  ): Promise<AdInquiry | null> {
+    const rows = await this.query(
+      `update ad_inquiries set status=coalesce($2,status), payment_status=coalesce($3,payment_status),
+         admin_note=case when $4::text is null then admin_note else $4 end, updated_at=now() where id=$1 returning *`,
+      [id, patch.status ?? null, patch.paymentStatus ?? null, patch.adminNote ?? null],
+    );
+    return rows[0] ? mapAd(rows[0]) : null;
+  }
+
+  async listActiveAds(): Promise<AdInquiry[]> {
+    const rows = await this.query(
+      `select * from ad_inquiries where status='active' and payment_status='verified'
+       and (campaign_start is null or campaign_start <= now())
+       and (campaign_end is null or campaign_end >= now()) order by created_at desc limit 10`,
+    );
+    return rows.map(mapAd);
+  }
+
+  async createUser(input: { email: string; displayName: string; passwordHash: string }): Promise<User> {
+    const rows = await this.query(
+      `insert into users (id,email,display_name,password_hash,created_at,updated_at)
+       values (gen_random_uuid()::text,$1,$2,$3,now(),now()) returning *`,
+      [input.email.toLowerCase(), input.displayName, input.passwordHash],
+    );
+    return mapUser(rows[0]!);
+  }
+
+  async getUserByEmail(email: string): Promise<User | null> {
+    const rows = await this.query("select * from users where email=$1", [email.toLowerCase()]);
+    return rows[0] ? mapUser(rows[0]) : null;
+  }
+
+  async getUserById(id: string): Promise<User | null> {
+    const rows = await this.query("select * from users where id=$1", [id]);
+    return rows[0] ? mapUser(rows[0]) : null;
+  }
+
+  async updateUser(
+    id: string,
+    patch: Partial<Pick<User, "displayName" | "stateId" | "districtId" | "pin" | "area">>,
+  ): Promise<PublicUser | null> {
+    const rows = await this.query(
+      `update users set display_name=coalesce($2,display_name), state_id=coalesce($3,state_id), district_id=coalesce($4,district_id),
+         pin=coalesce($5,pin), area=coalesce($6,area), updated_at=now() where id=$1 returning *`,
+      [id, patch.displayName ?? null, patch.stateId ?? null, patch.districtId ?? null, patch.pin ?? null, patch.area ?? null],
+    );
+    if (!rows[0]) return null;
+    const user = mapUser(rows[0]);
+    const safe: PublicUser = { ...user };
+    return safe;
+  }
+
+  async listOwnSubmissions(userId: string) {
+    const [issues, reviews, threads, questions, pollRequests, quizScores] = await Promise.all([
+      this.query("select * from issues where owner_id=$1 order by created_at desc limit 50", [userId]),
+      this.query("select * from reviews where owner_id=$1 order by created_at desc limit 50", [userId]),
+      this.query("select * from threads where owner_id=$1 order by created_at desc limit 50", [userId]),
+      this.query("select * from questions where owner_id=$1 order by created_at desc limit 50", [userId]),
+      this.query("select * from poll_requests where owner_id=$1 order by created_at desc limit 50", [userId]),
+      this.query("select * from quiz_scores where user_id=$1 order by updated_at desc limit 50", [userId]),
+    ]);
+    return {
+      issues: issues.map(mapIssue),
+      reviews: reviews.map(mapReview),
+      threads: threads.map(mapThread),
+      questions: questions.map(mapQuestion),
+      pollRequests: pollRequests.map(mapPollRequest),
+      quizScores: quizScores.map(mapQuizScore),
+    };
+  }
+
+  async upsertQuizScore(userId: string, quizSlug: string, score: number, total: number): Promise<QuizScore> {
+    const rows = await this.query(
+      `insert into quiz_scores (id,user_id,quiz_slug,score,total,created_at,updated_at)
+       values (gen_random_uuid()::text,$1,$2,$3,$4,now(),now())
+       on conflict (user_id,quiz_slug) do update set
+         score=greatest(quiz_scores.score, excluded.score),
+         total=case when excluded.score > quiz_scores.score then excluded.total else quiz_scores.total end,
+         updated_at=case when excluded.score > quiz_scores.score then now() else quiz_scores.updated_at end
+       returning *`,
+      [userId, quizSlug, score, total],
+    );
+    return mapQuizScore(rows[0]!);
+  }
+
+  async listLeaderboard(quizSlug?: string, limit = 25): Promise<LeaderboardEntry[]> {
+    const params: unknown[] = [];
+    let sql =
+      "select q.*, u.display_name from quiz_scores q join users u on u.id=q.user_id";
+    if (quizSlug) {
+      params.push(quizSlug);
+      sql += ` where q.quiz_slug=$1`;
+    }
+    sql += " order by q.updated_at desc limit 1000";
+    const rows = await this.query(sql, params);
+    const best = new Map<string, Row>();
+    for (const row of rows) {
+      const key = quizSlug ? text(row.user_id) : `${text(row.user_id)}:${text(row.quiz_slug)}`;
+      const current = best.get(key);
+      if (!current) {
+        best.set(key, row);
+        continue;
+      }
+      const ratio = Number(row.score) / Number(row.total);
+      const currentRatio = Number(current.score) / Number(current.total);
+      if (ratio > currentRatio || (ratio === currentRatio && Number(row.score) > Number(current.score))) {
+        best.set(key, row);
+      }
+    }
+    return [...best.values()]
+      .sort(
+        (a, b) =>
+          Number(b.score) / Number(b.total) - Number(a.score) / Number(a.total) ||
+          Number(b.score) - Number(a.score),
+      )
+      .slice(0, limit)
+      .map((row, index) => ({
+        rank: index + 1,
+        displayName: text(row.display_name) || "Citizen",
+        quizSlug: text(row.quiz_slug),
+        score: Number(row.score),
+        total: Number(row.total),
+        updatedAt: iso(row.updated_at),
+      }));
+  }
+
+  async listQuizScores(userId: string): Promise<QuizScore[]> {
+    const rows = await this.query("select * from quiz_scores where user_id=$1 order by updated_at desc", [userId]);
+    return rows.map(mapQuizScore);
+  }
+
   async getStats(): Promise<SiteStats> {
     const rows = await this.query(
       `select
@@ -630,13 +1176,13 @@ class PostgresRepository implements Repository {
 }
 
 export async function createPostgresRepository(connectionString: string): Promise<Repository> {
-  const pool = new Pool({
-    connectionString,
-    max: 3,
-    ssl: connectionString.includes("sslmode=require") ? { rejectUnauthorized: true } : undefined,
-    idleTimeoutMillis: 10_000,
-    connectionTimeoutMillis: 10_000,
-  });
+  const pool = new Pool(
+    postgresPoolOptions(connectionString, {
+      max: 3,
+      idleTimeoutMillis: 10_000,
+      connectionTimeoutMillis: 10_000,
+    }),
+  );
   const repo = new PostgresRepository(pool);
   await repo.initialize();
   return repo;

@@ -2,17 +2,26 @@ import { randomUUID, randomInt } from "crypto";
 import fs from "fs";
 import path from "path";
 import type {
+  AdInquiry,
+  Announcement,
+  BuzzPost,
   CivicIssue,
   ContactMessage,
   IssueStatus,
+  LeaderboardEntry,
   Poll,
+  PollRequest,
+  PollRequestStatus,
+  PublicUser,
   Question,
+  QuizScore,
   Reply,
   Representative,
   Report,
   Review,
   SiteStats,
   Thread,
+  User,
 } from "@/lib/types";
 import {
   demoIssues,
@@ -30,7 +39,28 @@ import type {
   ThreadInput,
 } from "@/lib/validation";
 
-export type StoreMode = "postgres" | "file" | "memory";
+
+export type StoreMode = "postgres" | "file" | "memory" | "demo";
+
+/** Only these modes survive across server instances. */
+export function isPersistentMode(mode: StoreMode): boolean {
+  return mode === "postgres" || mode === "file";
+}
+
+/**
+ * Read-only demo mode for production serverless deployments without a database.
+ * It serves seeded demo content from memory; all mutations are rejected by
+ * `mutationGuard`, so demo data is never presented as persistent storage.
+ * Set KBP_DEMO_MODE=0 to restore the previous hard failure behaviour.
+ */
+export function demoModeActive(): boolean {
+  const flag = process.env.KBP_DEMO_MODE;
+  if (flag === "0") return false;
+  if (flag === "1") return true;
+  if (process.env.DATABASE_URL) return false;
+  if (process.env.KBP_FILE_STORE) return false;
+  return Boolean(process.env.VERCEL) && process.env.NODE_ENV === "production";
+}
 
 type VoteRow = { pollId: string; optionId: string; voterHash: string; createdAt: string };
 
@@ -45,6 +75,12 @@ export type DbShape = {
   reports: Report[];
   representatives: Representative[];
   contactMessages: ContactMessage[];
+  pollRequests: PollRequest[];
+  announcements: Announcement[];
+  buzzPosts: BuzzPost[];
+  adInquiries: AdInquiry[];
+  users: User[];
+  quizScores: QuizScore[];
 };
 
 export type ListFilter = { stateId?: string; districtId?: string; limit?: number };
@@ -69,19 +105,19 @@ export interface Repository {
   castVote(pollId: string, optionId: string, voterHash: string): Promise<VoteOutcome>;
   listIssues(filter?: IssueFilter): Promise<CivicIssue[]>;
   getIssueByCode(code: string): Promise<CivicIssue | null>;
-  createIssue(input: NewIssue): Promise<CivicIssue>;
+  createIssue(input: NewIssue, ownerId?: string | null): Promise<CivicIssue>;
   updateIssue(id: string, status: IssueStatus, note: string, url?: string): Promise<CivicIssue | null>;
   listReviews(filter?: ListFilter): Promise<Review[]>;
-  createReview(input: NewReview): Promise<Review>;
+  createReview(input: NewReview, ownerId?: string | null): Promise<Review>;
   setReviewStatus(id: string, status: "published" | "hidden"): Promise<boolean>;
   listThreads(filter?: ListFilter): Promise<Thread[]>;
   getThread(id: string): Promise<{ thread: Thread; replies: Reply[] } | null>;
-  createThread(input: ThreadInput): Promise<Thread>;
+  createThread(input: ThreadInput, ownerId?: string | null): Promise<Thread>;
   addReply(threadId: string, body: string, authorAlias: string): Promise<Reply | null>;
   setReplyStatus(id: string, status: "published" | "hidden"): Promise<boolean>;
   setThreadStatus(id: string, status: "published" | "hidden"): Promise<boolean>;
   listQuestions(filter?: ListFilter): Promise<Question[]>;
-  createQuestion(input: QuestionInput): Promise<Question>;
+  createQuestion(input: QuestionInput, ownerId?: string | null): Promise<Question>;
   answerQuestion(id: string, answer: string, sources: { label: string; url: string }[]): Promise<boolean>;
   createReport(input: {
     targetType: Report["targetType"];
@@ -97,7 +133,113 @@ export interface Repository {
   listRepresentatives(filter?: ListFilter): Promise<Representative[]>;
   importRepresentatives(rows: Representative[]): Promise<number>;
   getStats(): Promise<SiteStats>;
+
+  listAllPolls(): Promise<Poll[]>;
+  createPoll(input: PollCreateInput): Promise<Poll>;
+  updatePollStatus(id: string, action: "publish" | "close" | "archive" | "feature" | "unfeature"): Promise<Poll | null>;
+
+  createPollRequest(input: PollRequestInput): Promise<PollRequest>;
+  listPollRequests(): Promise<PollRequest[]>;
+  listPublicPollRequests(): Promise<PollRequest[]>;
+  setPollRequestStatus(id: string, status: PollRequestStatus, note?: string | null, createdPollId?: string | null): Promise<PollRequest | null>;
+
+  createAnnouncement(input: AnnouncementInput): Promise<Announcement>;
+  updateAnnouncement(id: string, patch: Partial<AnnouncementInput>): Promise<Announcement | null>;
+  listAnnouncements(publicOnly?: boolean): Promise<Announcement[]>;
+  setAnnouncementStatus(id: string, status: Announcement["status"]): Promise<boolean>;
+  deleteAnnouncement(id: string): Promise<boolean>;
+
+  createBuzzPost(input: BuzzInput): Promise<BuzzPost>;
+  updateBuzzPost(id: string, patch: Partial<BuzzInput>): Promise<BuzzPost | null>;
+  listBuzzPosts(publicOnly?: boolean): Promise<BuzzPost[]>;
+  setBuzzStatus(id: string, status: BuzzPost["status"]): Promise<boolean>;
+  deleteBuzzPost(id: string): Promise<boolean>;
+
+  createAdInquiry(input: AdInquiryInput): Promise<AdInquiry>;
+  listAdInquiries(): Promise<AdInquiry[]>;
+  updateAdInquiry(id: string, patch: { status?: AdInquiry["status"]; paymentStatus?: AdInquiry["paymentStatus"]; adminNote?: string | null }): Promise<AdInquiry | null>;
+  listActiveAds(): Promise<AdInquiry[]>;
+
+  createUser(input: { email: string; displayName: string; passwordHash: string }): Promise<User>;
+  getUserByEmail(email: string): Promise<User | null>;
+  getUserById(id: string): Promise<User | null>;
+  updateUser(id: string, patch: Partial<Pick<User, "displayName" | "stateId" | "districtId" | "pin" | "area">>): Promise<PublicUser | null>;
+  listOwnSubmissions(userId: string): Promise<{
+    issues: CivicIssue[];
+    reviews: Review[];
+    threads: Thread[];
+    questions: Question[];
+    pollRequests: PollRequest[];
+    quizScores: QuizScore[];
+  }>;
+
+  upsertQuizScore(userId: string, quizSlug: string, score: number, total: number): Promise<QuizScore>;
+  listLeaderboard(quizSlug?: string, limit?: number): Promise<LeaderboardEntry[]>;
+  listQuizScores(userId: string): Promise<QuizScore[]>;
 }
+
+export type PollCreateInput = {
+  question: { hi: string; en: string };
+  description: { hi: string; en: string };
+  category: string;
+  closesAt: string;
+  options: { hi: string; en: string }[];
+  featured?: boolean;
+  sponsored?: boolean;
+  sponsorLabel?: { hi: string; en: string } | null;
+};
+
+export type PollRequestInput = {
+  questionHi: string;
+  questionEn: string;
+  optionsHi: string[];
+  optionsEn: string[];
+  category: string;
+  purpose: string;
+  contact?: string;
+  stateId: string;
+  districtId: string;
+  ownerId?: string | null;
+};
+
+export type AnnouncementInput = {
+  title: { hi: string; en: string };
+  body: { hi: string; en: string };
+  category: Announcement["category"];
+  stateId?: string | null;
+  districtId?: string | null;
+  sourceLabel?: string | null;
+  sourceUrl?: string | null;
+  imageUrl?: string | null;
+  status: Announcement["status"];
+  publishAt?: string | null;
+};
+
+export type BuzzInput = {
+  title: { hi: string; en: string };
+  summary: { hi: string; en: string };
+  body: { hi: string; en: string };
+  category: BuzzPost["category"];
+  platform: string;
+  sourceUrl?: string | null;
+  imageUrl?: string | null;
+  status: BuzzPost["status"];
+  origin?: BuzzPost["origin"];
+  submittedBy?: string | null;
+};
+
+export type AdInquiryInput = {
+  advertiserName: string;
+  email: string;
+  phone: string;
+  objective: string;
+  budgetRange: string;
+  placement: string;
+  destinationUrl: string;
+  creativeUrl?: string;
+  campaignStart?: string;
+  campaignEnd?: string;
+};
 
 function newState(): DbShape {
   return {
@@ -111,6 +253,12 @@ function newState(): DbShape {
     reports: [],
     representatives: [],
     contactMessages: [],
+    pollRequests: [],
+    announcements: [],
+    buzzPosts: [],
+    adInquiries: [],
+    users: [],
+    quizScores: [],
   };
 }
 
@@ -188,7 +336,10 @@ class JsonRepository implements Repository {
   }
 
   async listPolls(): Promise<Poll[]> {
-    return [...this.db.polls].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    return this.db.polls
+      .filter((poll) => poll.status !== "draft" && poll.status !== "archived")
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .map((poll) => this.normalizePoll(poll));
   }
 
   async getPoll(pollId: string): Promise<Poll | null> {
@@ -233,7 +384,7 @@ class JsonRepository implements Repository {
     return this.db.issues.find((issue) => issue.trackingCode.toUpperCase() === code.toUpperCase()) ?? null;
   }
 
-  async createIssue(input: NewIssue): Promise<CivicIssue> {
+  async createIssue(input: NewIssue, ownerId?: string | null): Promise<CivicIssue> {
     const now = new Date().toISOString();
     let code = trackingCode();
     while (this.db.issues.some((issue) => issue.trackingCode === code)) code = trackingCode();
@@ -259,6 +410,7 @@ class JsonRepository implements Repository {
           createdAt: now,
         },
       ],
+      ownerId: ownerId ?? null,
     };
     this.db.issues.push(issue);
     this.persist();
@@ -282,7 +434,7 @@ class JsonRepository implements Repository {
     return sortNewest(applyFilter(visible, filter)).slice(0, filter?.limit ?? 50);
   }
 
-  async createReview(input: NewReview): Promise<Review> {
+  async createReview(input: NewReview, ownerId?: string | null): Promise<Review> {
     const review: Review = {
       id: randomUUID(),
       serviceCategory: input.serviceCategory,
@@ -296,6 +448,7 @@ class JsonRepository implements Repository {
       status: "published",
       isDemo: false,
       createdAt: new Date().toISOString(),
+      ownerId: ownerId ?? null,
     };
     this.db.reviews.push(review);
     this.persist();
@@ -324,7 +477,7 @@ class JsonRepository implements Repository {
     return { thread, replies };
   }
 
-  async createThread(input: ThreadInput): Promise<Thread> {
+  async createThread(input: ThreadInput, ownerId?: string | null): Promise<Thread> {
     const thread: Thread = {
       id: randomUUID(),
       title: input.title,
@@ -337,6 +490,7 @@ class JsonRepository implements Repository {
       createdAt: new Date().toISOString(),
       replyCount: 0,
       status: "published",
+      ownerId: ownerId ?? null,
     };
     this.db.threads.push(thread);
     this.persist();
@@ -381,7 +535,7 @@ class JsonRepository implements Repository {
     return sortNewest(applyFilter(this.db.questions, filter)).slice(0, filter?.limit ?? 50);
   }
 
-  async createQuestion(input: QuestionInput): Promise<Question> {
+  async createQuestion(input: QuestionInput, ownerId?: string | null): Promise<Question> {
     const question: Question = {
       id: randomUUID(),
       question: input.question,
@@ -392,6 +546,7 @@ class JsonRepository implements Repository {
       stateId: input.stateId || null,
       isDemo: false,
       createdAt: new Date().toISOString(),
+      ownerId: ownerId ?? null,
     };
     this.db.questions.push(question);
     this.persist();
@@ -495,11 +650,398 @@ class JsonRepository implements Repository {
       questions: this.db.questions.length,
     };
   }
+
+  private normalizePoll(poll: Poll): Poll {
+    return {
+      ...poll,
+      status: poll.status ?? "published",
+      featured: poll.featured ?? false,
+      sponsored: poll.sponsored ?? false,
+      sponsorLabel: poll.sponsorLabel ?? null,
+    };
+  }
+
+  async listAllPolls(): Promise<Poll[]> {
+    return [...this.db.polls]
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .map((poll) => this.normalizePoll(poll));
+  }
+
+  async createPoll(input: PollCreateInput): Promise<Poll> {
+    const poll: Poll = {
+      id: randomUUID(),
+      question: input.question,
+      description: input.description,
+      category: input.category,
+      closesAt: input.closesAt,
+      isDemo: false,
+      createdAt: new Date().toISOString(),
+      status: "published",
+      featured: input.featured ?? false,
+      sponsored: input.sponsored ?? false,
+      sponsorLabel: input.sponsorLabel ?? null,
+      options: input.options.map((option) => ({ id: randomUUID(), label: option })),
+    };
+    this.db.polls.push(poll);
+    this.persist();
+    return poll;
+  }
+
+  async updatePollStatus(id: string, action: "publish" | "close" | "archive" | "feature" | "unfeature") {
+    const poll = this.db.polls.find((item) => item.id === id);
+    if (!poll) return null;
+    this.normalizePoll(poll);
+    if (action === "publish") poll.status = "published";
+    if (action === "close") poll.status = "closed";
+    if (action === "archive") poll.status = "archived";
+    if (action === "feature") poll.featured = true;
+    if (action === "unfeature") poll.featured = false;
+    this.persist();
+    return poll;
+  }
+
+  async createPollRequest(input: PollRequestInput): Promise<PollRequest> {
+    const now = new Date().toISOString();
+    const request: PollRequest = {
+      id: randomUUID(),
+      questionHi: input.questionHi,
+      questionEn: input.questionEn,
+      optionsHi: input.optionsHi,
+      optionsEn: input.optionsEn,
+      category: input.category,
+      purpose: input.purpose,
+      contact: input.contact || null,
+      stateId: input.stateId,
+      districtId: input.districtId,
+      status: "pending",
+      adminNote: null,
+      createdPollId: null,
+      ownerId: input.ownerId ?? null,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.db.pollRequests.push(request);
+    this.persist();
+    return request;
+  }
+
+  async listPollRequests(): Promise<PollRequest[]> {
+    return sortNewest(this.db.pollRequests);
+  }
+
+  async listPublicPollRequests(): Promise<PollRequest[]> {
+    return sortNewest(this.db.pollRequests.filter((request) => request.status === "approved" || request.status === "published"));
+  }
+
+  async setPollRequestStatus(
+    id: string,
+    status: PollRequestStatus,
+    note?: string | null,
+    createdPollId?: string | null,
+  ): Promise<PollRequest | null> {
+    const request = this.db.pollRequests.find((item) => item.id === id);
+    if (!request) return null;
+    request.status = status;
+    request.adminNote = note ?? request.adminNote;
+    request.createdPollId = createdPollId ?? request.createdPollId;
+    request.updatedAt = new Date().toISOString();
+    this.persist();
+    return request;
+  }
+
+  async createAnnouncement(input: AnnouncementInput): Promise<Announcement> {
+    const now = new Date().toISOString();
+    const announcement: Announcement = {
+      id: randomUUID(),
+      title: input.title,
+      body: input.body,
+      category: input.category,
+      stateId: input.stateId ?? null,
+      districtId: input.districtId ?? null,
+      sourceLabel: input.sourceLabel ?? null,
+      sourceUrl: input.sourceUrl ?? null,
+      imageUrl: input.imageUrl ?? null,
+      status: input.status,
+      publishAt: input.publishAt ?? null,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.db.announcements.push(announcement);
+    this.persist();
+    return announcement;
+  }
+
+  async updateAnnouncement(id: string, patch: Partial<AnnouncementInput>): Promise<Announcement | null> {
+    const announcement = this.db.announcements.find((item) => item.id === id);
+    if (!announcement) return null;
+    Object.assign(announcement, patch, { updatedAt: new Date().toISOString() });
+    this.persist();
+    return announcement;
+  }
+
+  async listAnnouncements(publicOnly = false): Promise<Announcement[]> {
+    const now = Date.now();
+    const items = publicOnly
+      ? this.db.announcements.filter(
+          (item) =>
+            item.status === "published" &&
+            (!item.publishAt || new Date(item.publishAt).getTime() <= now),
+        )
+      : this.db.announcements;
+    return [...items].sort((a, b) => {
+      const aTime = a.publishAt ?? a.createdAt;
+      const bTime = b.publishAt ?? b.createdAt;
+      return bTime.localeCompare(aTime);
+    });
+  }
+
+  async setAnnouncementStatus(id: string, status: Announcement["status"]): Promise<boolean> {
+    const announcement = this.db.announcements.find((item) => item.id === id);
+    if (!announcement) return false;
+    announcement.status = status;
+    announcement.updatedAt = new Date().toISOString();
+    this.persist();
+    return true;
+  }
+
+  async deleteAnnouncement(id: string): Promise<boolean> {
+    const index = this.db.announcements.findIndex((item) => item.id === id);
+    if (index < 0) return false;
+    this.db.announcements.splice(index, 1);
+    this.persist();
+    return true;
+  }
+
+  private normalizeBuzz(post: BuzzPost): BuzzPost {
+    return { ...post, origin: post.origin ?? "admin", submittedBy: post.submittedBy ?? null };
+  }
+
+  async createBuzzPost(input: BuzzInput): Promise<BuzzPost> {
+    const now = new Date().toISOString();
+    const post: BuzzPost = {
+      id: randomUUID(),
+      title: input.title,
+      summary: input.summary,
+      body: input.body,
+      category: input.category,
+      platform: input.platform,
+      sourceUrl: input.sourceUrl ?? null,
+      imageUrl: input.imageUrl ?? null,
+      status: input.status,
+      origin: input.origin ?? "admin",
+      submittedBy: input.submittedBy ?? null,
+      createdAt: now,
+      updatedAt: now,
+      publishedAt: input.status === "published" ? now : null,
+    };
+    this.db.buzzPosts.push(post);
+    this.persist();
+    return post;
+  }
+
+  async updateBuzzPost(id: string, patch: Partial<BuzzInput>): Promise<BuzzPost | null> {
+    const post = this.db.buzzPosts.find((item) => item.id === id);
+    if (!post) return null;
+    Object.assign(post, patch, { updatedAt: new Date().toISOString() });
+    if (patch.status === "published" && !post.publishedAt) post.publishedAt = new Date().toISOString();
+    this.persist();
+    return post;
+  }
+
+  async listBuzzPosts(publicOnly = false): Promise<BuzzPost[]> {
+    const items = publicOnly ? this.db.buzzPosts.filter((item) => item.status === "published") : this.db.buzzPosts;
+    return [...items]
+      .sort((a, b) => (b.publishedAt ?? b.createdAt).localeCompare(a.publishedAt ?? a.createdAt))
+      .map((post) => this.normalizeBuzz(post));
+  }
+
+  async setBuzzStatus(id: string, status: BuzzPost["status"]): Promise<boolean> {
+    const post = this.db.buzzPosts.find((item) => item.id === id);
+    if (!post) return false;
+    post.status = status;
+    post.updatedAt = new Date().toISOString();
+    if (status === "published" && !post.publishedAt) post.publishedAt = post.updatedAt;
+    this.persist();
+    return true;
+  }
+
+  async deleteBuzzPost(id: string): Promise<boolean> {
+    const index = this.db.buzzPosts.findIndex((item) => item.id === id);
+    if (index < 0) return false;
+    this.db.buzzPosts.splice(index, 1);
+    this.persist();
+    return true;
+  }
+
+  async createAdInquiry(input: AdInquiryInput): Promise<AdInquiry> {
+    const now = new Date().toISOString();
+    const inquiry: AdInquiry = {
+      id: randomUUID(),
+      advertiserName: input.advertiserName,
+      email: input.email,
+      phone: input.phone,
+      objective: input.objective,
+      budgetRange: input.budgetRange,
+      placement: input.placement,
+      destinationUrl: input.destinationUrl,
+      creativeUrl: input.creativeUrl || null,
+      campaignStart: input.campaignStart ?? null,
+      campaignEnd: input.campaignEnd ?? null,
+      status: "pending",
+      paymentStatus: "unpaid",
+      adminNote: null,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.db.adInquiries.push(inquiry);
+    this.persist();
+    return inquiry;
+  }
+
+  async listAdInquiries(): Promise<AdInquiry[]> {
+    return sortNewest(this.db.adInquiries);
+  }
+
+  async updateAdInquiry(
+    id: string,
+    patch: { status?: AdInquiry["status"]; paymentStatus?: AdInquiry["paymentStatus"]; adminNote?: string | null },
+  ): Promise<AdInquiry | null> {
+    const inquiry = this.db.adInquiries.find((item) => item.id === id);
+    if (!inquiry) return null;
+    if (patch.status) inquiry.status = patch.status;
+    if (patch.paymentStatus) inquiry.paymentStatus = patch.paymentStatus;
+    if (patch.adminNote !== undefined) inquiry.adminNote = patch.adminNote;
+    inquiry.updatedAt = new Date().toISOString();
+    this.persist();
+    return inquiry;
+  }
+
+  async listActiveAds(): Promise<AdInquiry[]> {
+    const now = Date.now();
+    return this.db.adInquiries.filter((ad) => {
+      if (ad.status !== "active" || ad.paymentStatus !== "verified") return false;
+      if (ad.campaignStart && new Date(ad.campaignStart).getTime() > now) return false;
+      if (ad.campaignEnd && new Date(ad.campaignEnd).getTime() < now) return false;
+      return true;
+    });
+  }
+
+  async createUser(input: { email: string; displayName: string; passwordHash: string }): Promise<User> {
+    const now = new Date().toISOString();
+    const user: User = {
+      id: randomUUID(),
+      email: input.email.toLowerCase(),
+      displayName: input.displayName,
+      passwordHash: input.passwordHash,
+      stateId: null,
+      districtId: null,
+      pin: null,
+      area: null,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.db.users.push(user);
+    this.persist();
+    return user;
+  }
+
+  async getUserByEmail(email: string): Promise<User | null> {
+    return this.db.users.find((user) => user.email === email.toLowerCase()) ?? null;
+  }
+
+  async getUserById(id: string): Promise<User | null> {
+    return this.db.users.find((user) => user.id === id) ?? null;
+  }
+
+  async updateUser(
+    id: string,
+    patch: Partial<Pick<User, "displayName" | "stateId" | "districtId" | "pin" | "area">>,
+  ): Promise<PublicUser | null> {
+    const user = this.db.users.find((item) => item.id === id);
+    if (!user) return null;
+    Object.assign(user, patch, { updatedAt: new Date().toISOString() });
+    this.persist();
+    const safe: PublicUser = { ...user };
+    return safe;
+  }
+
+  async listOwnSubmissions(userId: string) {
+    return {
+      issues: sortNewest(this.db.issues.filter((item) => item.ownerId === userId)),
+      reviews: sortNewest(this.db.reviews.filter((item) => item.ownerId === userId)),
+      threads: sortNewest(this.db.threads.filter((item) => item.ownerId === userId)),
+      questions: sortNewest(this.db.questions.filter((item) => item.ownerId === userId)),
+      pollRequests: sortNewest(this.db.pollRequests.filter((item) => item.ownerId === userId)),
+      quizScores: sortNewest(this.db.quizScores.filter((item) => item.userId === userId)),
+    };
+  }
+
+  async upsertQuizScore(userId: string, quizSlug: string, score: number, total: number): Promise<QuizScore> {
+    const now = new Date().toISOString();
+    const existing = this.db.quizScores.find((item) => item.userId === userId && item.quizSlug === quizSlug);
+    if (existing) {
+      if (score > existing.score) {
+        existing.score = score;
+        existing.total = total;
+        existing.updatedAt = now;
+        this.persist();
+      }
+      return existing;
+    }
+    const row: QuizScore = {
+      id: randomUUID(),
+      userId,
+      quizSlug,
+      score,
+      total,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.db.quizScores.push(row);
+    this.persist();
+    return row;
+  }
+
+  async listLeaderboard(quizSlug?: string, limit = 25): Promise<LeaderboardEntry[]> {
+    const rows = this.db.quizScores.filter((item) => !quizSlug || item.quizSlug === quizSlug);
+    const best = new Map<string, QuizScore>();
+    for (const row of rows) {
+      const key = quizSlug ? row.userId : `${row.userId}:${row.quizSlug}`;
+      const current = best.get(key);
+      if (!current || row.score / row.total > current.score / current.total || (row.score / row.total === current.score / current.total && row.score > current.score)) {
+        best.set(key, row);
+      }
+    }
+    const entries = [...best.values()]
+      .map((row) => {
+        const user = this.db.users.find((item) => item.id === row.userId);
+        return {
+          rank: 0,
+          displayName: user?.displayName ?? "Citizen",
+          quizSlug: row.quizSlug,
+          score: row.score,
+          total: row.total,
+          updatedAt: row.updatedAt,
+        };
+      })
+      .sort((a, b) => b.score / b.total - a.score / a.total || b.score - a.score || a.updatedAt.localeCompare(b.updatedAt))
+      .slice(0, limit);
+    return entries.map((entry, index) => ({ ...entry, rank: index + 1 }));
+  }
+
+  async listQuizScores(userId: string): Promise<QuizScore[]> {
+    return sortNewest(this.db.quizScores.filter((item) => item.userId === userId));
+  }
 }
 
 let repository: Repository | null = null;
 
 function createJsonRepository(): JsonRepository {
+  if (demoModeActive()) {
+    // Read-only demo content. No database or filesystem writes, and writes are
+    // rejected at the API layer so temporary storage is never shown as durable.
+    return new JsonRepository(null, "demo");
+  }
   const isServerless = Boolean(process.env.VERCEL) && !process.env.KBP_FILE_STORE;
   if (isServerless) {
     // In production, serverless deployments must not silently degrade to memory.
@@ -523,6 +1065,11 @@ export async function getRepository(): Promise<Repository> {
     repository = createJsonRepository();
   }
   return repository;
+}
+
+export async function getUserById(id: string): Promise<User | null> {
+  const repo = await getRepository();
+  return repo.getUserById(id);
 }
 
 /** Test helper: reset the singleton between test suites. */

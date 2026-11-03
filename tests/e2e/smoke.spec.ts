@@ -30,7 +30,7 @@ test.describe("public shell", () => {
     const routes: [string, RegExp][] = [
       ["/news", /खबरें और नागरिक जानकारी/],
       ["/representatives", /अपने जनप्रतिनिधि को जानें/],
-      ["/polls", /सामुदायिक पोल/],
+      ["/polls", /क्या बोलती Public/],
       ["/issues", /नागरिक समस्याएँ/],
       ["/games", /नागरिक ज्ञान के खेल/],
       ["/discussions", /आपके इलाके की बातचीत/],
@@ -84,7 +84,15 @@ test.describe("citizen actions", () => {
     await expect(page.getByText(/^KBP-[A-Z0-9]{6}$/)).toBeVisible();
   });
 
-  test("a community poll records one vote per browser", async ({ page }) => {
+  test("a community poll records one vote per account", async ({ page }) => {
+    const email = `poll-voter-${Date.now()}@example.com`;
+    const password = "vote-test-123";
+
+    const registerResponse = await page.request.post("/api/auth/register", {
+      data: { email, displayName: "Poll Voter", password },
+    });
+    expect(registerResponse.ok()).toBeTruthy();
+
     await page.goto("/polls");
 
     const firstPoll = page.locator("section").filter({ hasText: "आपके इलाके में सबसे ज़रूरी नागरिक मुद्दा" });
@@ -94,7 +102,7 @@ test.describe("citizen actions", () => {
     await expect(firstPoll.getByRole("status")).toContainText("आपका वोट दर्ज हो गया");
     await expect(firstPoll.getByRole("button", { name: "नतीजे छिपाएँ" })).toBeVisible();
 
-    // Same browser cookie on a fresh page load: voting controls stay closed.
+    // Same browser session on a fresh page load: voting controls stay closed.
     await page.reload();
     const reloadedPoll = page.locator("section").filter({ hasText: "आपके इलाके में सबसे ज़रूरी नागरिक मुद्दा" });
     await expect(reloadedPoll.getByRole("button", { name: "वोट दें" })).toHaveCount(0);

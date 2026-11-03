@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale } from "@/components/locale-context";
-import { TextAreaField, TextField } from "@/components/form-controls";
+import { TextAreaField, TextField, SelectField } from "@/components/form-controls";
 import { Alert, Badge, buttonClass, cn } from "@/components/ui";
 import { IconAlert, IconCheck, IconExternal, IconShield } from "@/components/icons";
 import { issueStatusLabels } from "@/lib/labels";
@@ -19,6 +19,70 @@ type NewsSourceView = {
   termsNote: string;
 };
 
+type PollView = {
+  id: string;
+  question: { hi: string; en: string };
+  description: { hi: string; en: string };
+  category: string;
+  closesAt: string;
+  status?: string;
+  featured?: boolean;
+  sponsored?: boolean;
+  isDemo: boolean;
+  createdAt: string;
+  options: { id: string; label: { hi: string; en: string } }[];
+};
+
+type PollRequestView = {
+  id: string;
+  questionHi: string;
+  questionEn: string;
+  optionsHi: string[];
+  optionsEn: string[];
+  category: string;
+  status: string;
+  adminNote: string | null;
+  createdPollId: string | null;
+  createdAt: string;
+};
+
+type AnnouncementView = {
+  id: string;
+  title: { hi: string; en: string };
+  body: { hi: string; en: string };
+  category: string;
+  status: string;
+  sourceUrl: string | null;
+  publishAt: string | null;
+  createdAt: string;
+};
+
+type BuzzPostView = {
+  id: string;
+  title: { hi: string; en: string };
+  summary: { hi: string; en: string };
+  body: { hi: string; en: string };
+  category: string;
+  platform: string;
+  sourceUrl: string | null;
+  status: string;
+  origin: string;
+  createdAt: string;
+};
+
+type AdInquiryView = {
+  id: string;
+  advertiserName: string;
+  email: string;
+  status: string;
+  paymentStatus: string;
+  placement: string;
+  destinationUrl: string;
+  campaignEnd: string | null;
+  adminNote: string | null;
+  createdAt: string;
+};
+
 type Overview = {
   ok?: boolean;
   storage?: string;
@@ -29,6 +93,11 @@ type Overview = {
   contactMessages?: ContactMessage[];
   repsCount?: number;
   newsSources?: NewsSourceView[];
+  pollRequests?: PollRequestView[];
+  announcements?: AnnouncementView[];
+  buzzPosts?: BuzzPostView[];
+  adInquiries?: AdInquiryView[];
+  polls?: PollView[];
   error?: string;
 };
 
@@ -37,6 +106,11 @@ const tabs = [
   { id: "questions", hi: "सवाल-जवाब", en: "Q&A" },
   { id: "reports", hi: "रिपोर्ट", en: "Reports" },
   { id: "contacts", hi: "संपर्क", en: "Contacts" },
+  { id: "polls", hi: "पोल", en: "Polls" },
+  { id: "pollRequests", hi: "पोल अनुरोध", en: "Poll requests" },
+  { id: "updates", hi: "अपडेट", en: "Updates" },
+  { id: "buzz", hi: "बज़", en: "Buzz" },
+  { id: "ads", hi: "विज्ञापन", en: "Ads" },
   { id: "representatives", hi: "जनप्रतिनिधि", en: "Representatives" },
   { id: "sources", hi: "स्रोत", en: "Sources" },
 ] as const;
@@ -205,7 +279,7 @@ function QuestionAdminRow({ question, onSaved }: { question: Question; onSaved: 
 }
 
 export function AdminDashboard() {
-  const { locale } = useLocale();
+  const { locale, t } = useLocale();
   const router = useRouter();
   const [data, setData] = useState<Overview | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "denied" | "unconfigured" | "error">("loading");
@@ -214,6 +288,28 @@ export function AdminDashboard() {
   const [sourceNote, setSourceNote] = useState("");
   const [repState, setRepState] = useState<"idle" | "saving" | "done" | "error">("idle");
   const [repMessage, setRepMessage] = useState<string | null>(null);
+
+  const [annTitleHi, setAnnTitleHi] = useState("");
+  const [annTitleEn, setAnnTitleEn] = useState("");
+  const [annBodyHi, setAnnBodyHi] = useState("");
+  const [annBodyEn, setAnnBodyEn] = useState("");
+  const [annCategory, setAnnCategory] = useState("notice");
+  const [annStatus, setAnnStatus] = useState("draft");
+  const [annSourceUrl, setAnnSourceUrl] = useState("");
+  const [annPublishAt, setAnnPublishAt] = useState("");
+
+  const [buzzTitleHi, setBuzzTitleHi] = useState("");
+  const [buzzTitleEn, setBuzzTitleEn] = useState("");
+  const [buzzSummaryHi, setBuzzSummaryHi] = useState("");
+  const [buzzSummaryEn, setBuzzSummaryEn] = useState("");
+  const [buzzBodyHi, setBuzzBodyHi] = useState("");
+  const [buzzBodyEn, setBuzzBodyEn] = useState("");
+  const [buzzCategory, setBuzzCategory] = useState("trending");
+  const [buzzPlatform, setBuzzPlatform] = useState("youtube");
+  const [buzzSourceUrl, setBuzzSourceUrl] = useState("");
+  const [buzzStatus, setBuzzStatus] = useState("draft");
+  const [buzzEditId, setBuzzEditId] = useState<string | null>(null);
+
 
   const load = useCallback(async () => {
     try {
@@ -249,6 +345,124 @@ export function AdminDashboard() {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ action: "resolve", targetType, targetId }),
     });
+    void load();
+  }
+
+  async function managePollAction(id: string, action: "publish" | "close" | "archive" | "feature" | "unfeature") {
+    const response = await fetch("/api/admin/polls", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id, action }),
+    });
+    const data = (await response.json()) as { ok?: boolean };
+    if (!response.ok || !data.ok) setStatus("error");
+    void load();
+  }
+
+  async function moderatePollRequest(id: string, action: "approve" | "reject" | "publish", closesAt?: string) {
+    const response = await fetch("/api/admin/poll-requests", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(action === "publish" && closesAt ? { id, action, closesAt } : { id, action }),
+    });
+    if (!response.ok) setStatus("error");
+    void load();
+  }
+
+  async function saveAnnouncement(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const body = {
+      title: { hi: annTitleHi, en: annTitleEn },
+      body: { hi: annBodyHi, en: annBodyEn },
+      category: annCategory,
+      status: annStatus,
+      sourceUrl: annSourceUrl || undefined,
+      publishAt: annPublishAt || undefined,
+    };
+    const response = await fetch("/api/admin/announcements", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const result = (await response.json()) as { ok?: boolean };
+    if (response.ok && result.ok) void load();
+  }
+
+  async function manageAnnouncement(id: string, action: "publish" | "unpublish" | "archive" | "delete") {
+    const response = await fetch("/api/admin/announcements", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id, action }),
+    });
+    const data = (await response.json()) as { ok?: boolean };
+    if (!response.ok || !data.ok) setStatus("error");
+    void load();
+  }
+
+  async function saveBuzz(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const body = {
+      id: buzzEditId ?? undefined,
+      title: { hi: buzzTitleHi, en: buzzTitleEn },
+      summary: { hi: buzzSummaryHi, en: buzzSummaryEn },
+      body: { hi: buzzBodyHi, en: buzzBodyEn },
+      category: buzzCategory,
+      platform: buzzPlatform,
+      sourceUrl: buzzSourceUrl || undefined,
+      status: buzzStatus,
+    };
+    const response = await fetch("/api/admin/buzz", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const result = (await response.json()) as { ok?: boolean };
+    if (response.ok && result.ok) {
+      setBuzzEditId(null);
+      setBuzzStatus("draft");
+      setBuzzTitleHi("");
+      setBuzzTitleEn("");
+      setBuzzSummaryHi("");
+      setBuzzSummaryEn("");
+      setBuzzBodyHi("");
+      setBuzzBodyEn("");
+      setBuzzSourceUrl("");
+      void load();
+    }
+  }
+
+  async function manageBuzz(id: string, action: "publish" | "unpublish" | "delete") {
+    const response = await fetch("/api/admin/buzz", {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id, action }),
+    });
+    const data = (await response.json()) as { ok?: boolean };
+    if (!response.ok || !data.ok) setStatus("error");
+    void load();
+  }
+
+  function startBuzzEdit(post: BuzzPostView) {
+    setBuzzEditId(post.id);
+    setBuzzTitleHi(post.title.hi);
+    setBuzzTitleEn(post.title.en);
+    setBuzzSummaryHi(post.summary.hi);
+    setBuzzSummaryEn(post.summary.en);
+    setBuzzBodyHi(post.body.hi);
+    setBuzzBodyEn(post.body.en);
+    setBuzzCategory(post.category);
+    setBuzzPlatform(post.platform);
+    setBuzzSourceUrl(post.sourceUrl ?? "");
+    setBuzzStatus(post.status);
+  }
+
+  async function manageAd(id: string, action: "approve" | "reject" | "verify_payment" | "activate" | "pause" | "resume" | "expire") {
+    const response = await fetch("/api/admin/ads", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id, action }),
+    });
+    if (!response.ok) setStatus("error");
     void load();
   }
 
@@ -331,6 +545,7 @@ export function AdminDashboard() {
   const openReports = data.reports?.filter((report) => report.status === "open") ?? [];
   const openContacts = data.contactMessages?.filter((message) => message.status === "open") ?? [];
   const pendingQuestions = data.questions?.filter((question) => !question.answer) ?? [];
+  const openPollRequests = data.pollRequests?.filter((request) => request.status === "pending") ?? [];
 
   return (
     <div className="container-page py-8 sm:py-10">
@@ -376,7 +591,15 @@ export function AdminDashboard() {
       <div className="mt-5 flex gap-1 overflow-x-auto border-b border-navy-100 pb-px hide-scrollbar" role="tablist">
         {tabs.map((item) => {
           const count =
-            item.id === "reports" ? openReports.length : item.id === "contacts" ? openContacts.length : item.id === "questions" ? pendingQuestions.length : 0;
+            item.id === "reports"
+              ? openReports.length
+              : item.id === "contacts"
+                ? openContacts.length
+                : item.id === "questions"
+                  ? pendingQuestions.length
+                  : item.id === "pollRequests"
+                    ? openPollRequests.length
+                    : 0;
           return (
             <button
               key={item.id}
@@ -516,6 +739,242 @@ export function AdminDashboard() {
                 ? "फ़ीड रीफ़्रेश /api/cron/news से होता है और उसके लिए CRON_SECRET या स्थानीय अनुरोध ज़रूरी है। यहाँ से रीफ़्रेश नहीं होता।"
                 : "Feed refresh runs through /api/cron/news and needs CRON_SECRET or a local request. It is not triggered here."}
             </p>
+          </div>
+        ) : null}
+
+        {tab === "polls" ? (
+          <div className="rounded-2xl border border-navy-100 bg-white p-4">
+            <h2 className="text-sm font-extrabold text-navy-900">{locale === "hi" ? "पोल प्रबंधन" : "Poll management"}</h2>
+            {(data.polls ?? []).length === 0 ? (
+              <p className="mt-3 text-[0.78rem] text-navy-500">{locale === "hi" ? "कोई पोल नहीं।" : "No polls yet."}</p>
+            ) : (
+              <ul className="mt-3 space-y-2.5">
+                {(data.polls ?? []).map((poll) => (
+                  <li key={poll.id} className="rounded-xl border border-navy-100 p-3.5">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-xs font-bold text-navy-800">{poll.question.hi}</span>
+                      {poll.sponsored ? <Badge tone="gold">{t.polls.sponsored}</Badge> : null}
+                      <span className="ml-auto text-[0.66rem] text-navy-400">{new Date(poll.closesAt).toLocaleDateString()}</span>
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      <button type="button" onClick={() => void managePollAction(poll.id, "feature")} className={buttonClass("outline", "sm")}>
+                        {locale === "hi" ? "प्रमुख" : "Feature"}
+                      </button>
+                      <button type="button" onClick={() => void managePollAction(poll.id, "close")} className={buttonClass("outline", "sm")}>
+                        {locale === "hi" ? "बंद" : "Close"}
+                      </button>
+                      <button type="button" onClick={() => void managePollAction(poll.id, "archive")} className={buttonClass("outline", "sm")}>
+                        {locale === "hi" ? "आर्काइव" : "Archive"}
+                      </button>
+                      {poll.status !== "published" ? (
+                        <button type="button" onClick={() => void managePollAction(poll.id, "publish")} className={buttonClass("secondary", "sm")}>
+                          {locale === "hi" ? "प्रकाशित" : "Publish"}
+                        </button>
+                      ) : null}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ) : null}
+
+        {tab === "pollRequests" ? (
+          <div className="rounded-2xl border border-navy-100 bg-white p-4">
+            <h2 className="text-sm font-extrabold text-navy-900">{locale === "hi" ? "पोल अनुरोध" : "Poll requests"}</h2>
+            {(data.pollRequests ?? []).length === 0 ? (
+              <p className="mt-3 text-[0.78rem] text-navy-500">{locale === "hi" ? "कोई अनुरोध नहीं।" : "No poll requests."}</p>
+            ) : (
+              <ul className="mt-3 space-y-2.5">
+                {(data.pollRequests ?? []).map((request) => (
+                  <li key={request.id} className="rounded-xl border border-navy-100 p-3.5">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-xs font-bold text-navy-800">{request.questionHi}</span>
+                      <Badge tone={request.status === "approved" || request.status === "published" ? "teal" : "gold"}>{request.status}</Badge>
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {request.status !== "published" && request.status !== "rejected" ? (
+                        <button type="button" onClick={() => void moderatePollRequest(request.id, "approve")} className={buttonClass("secondary", "sm")}>
+                          {locale === "hi" ? "स्वीकृत" : "Approve"}
+                        </button>
+                      ) : null}
+                      {request.status !== "rejected" ? (
+                        <button type="button" onClick={() => void moderatePollRequest(request.id, "reject")} className={buttonClass("outline", "sm")}>
+                          {locale === "hi" ? "अस्वीकार" : "Reject"}
+                        </button>
+                      ) : null}
+                      {request.status !== "published" ? (
+                        <button type="button" onClick={() => void moderatePollRequest(request.id, "publish", new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString())} className={buttonClass("secondary", "sm")}>
+                          {locale === "hi" ? "प्रकाशित करें" : "Publish"}
+                        </button>
+                      ) : null}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ) : null}
+
+        {tab === "updates" ? (
+          <div className="rounded-2xl border border-navy-100 bg-white p-4">
+            <h2 className="text-sm font-extrabold text-navy-900">{locale === "hi" ? "सार्वजनिक अपडेट" : "Public updates"}</h2>
+            <form onSubmit={saveAnnouncement} className="mt-3 space-y-2 rounded-xl border border-navy-100 p-3">
+              <TextField label={locale === "hi" ? "शीर्षक (हिंदी)" : "Title (Hindi)"} value={annTitleHi} onChange={(event) => setAnnTitleHi(event.target.value)} maxLength={160} />
+              <TextAreaField label={locale === "hi" ? "शरीर (हिंदी)" : "Body (Hindi)"} value={annBodyHi} onChange={(event) => setAnnBodyHi(event.target.value)} maxLength={4000} />
+              <div className="grid gap-2 sm:grid-cols-2">
+                <TextField label={locale === "hi" ? "शीर्षक (अंग्रेज़ी)" : "Title (English)"} value={annTitleEn} onChange={(event) => setAnnTitleEn(event.target.value)} maxLength={160} />
+                <TextAreaField label={locale === "hi" ? "शरीर (अंग्रेज़ी)" : "Body (English)"} value={annBodyEn} onChange={(event) => setAnnBodyEn(event.target.value)} maxLength={4000} />
+              </div>
+              <div className="grid gap-2 sm:grid-cols-3">
+                <SelectField label={locale === "hi" ? "श्रेणी" : "Category"} value={annCategory} onChange={(event) => setAnnCategory(event.target.value)}>
+                  <option value="notice">notice</option>
+                  <option value="event">event</option>
+                  <option value="scheme">scheme</option>
+                  <option value="alert">alert</option>
+                </SelectField>
+                <SelectField label={locale === "hi" ? "स्थिति" : "Status"} value={annStatus} onChange={(event) => setAnnStatus(event.target.value)}>
+                  <option value="draft">draft</option>
+                  <option value="scheduled">scheduled</option>
+                  <option value="published">published</option>
+                  <option value="archived">archived</option>
+                </SelectField>
+                <TextField label={locale === "hi" ? "प्रकाशन समय" : "Publish at"} type="date" value={annPublishAt} onChange={(event) => setAnnPublishAt(event.target.value)} />
+              </div>
+              <TextField label={locale === "hi" ? "स्रोत URL" : "Source URL"} type="url" value={annSourceUrl} onChange={(event) => setAnnSourceUrl(event.target.value)} placeholder="https://" />
+              <button type="submit" className={buttonClass("secondary", "sm")}>
+                {locale === "hi" ? "सहेजें" : "Save"}
+              </button>
+            </form>
+            <ul className="mt-3 space-y-2.5">
+              {(data.announcements ?? []).map((announcement) => (
+                <li key={announcement.id} className="rounded-xl border border-navy-100 p-3.5">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-xs font-bold text-navy-800">{announcement.title.hi}</span>
+                    <Badge tone={announcement.status === "published" ? "teal" : "gold"}>{announcement.status}</Badge>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {announcement.status !== "published" ? (
+                      <button type="button" onClick={() => void manageAnnouncement(announcement.id, "publish")} className={buttonClass("secondary", "sm")}>
+                        {locale === "hi" ? "प्रकाशित" : "Publish"}
+                      </button>
+                    ) : null}
+                    <button type="button" onClick={() => void manageAnnouncement(announcement.id, "archive")} className={buttonClass("outline", "sm")}>
+                      {locale === "hi" ? "आर्काइव" : "Archive"}
+                    </button>
+                    <button type="button" onClick={() => void manageAnnouncement(announcement.id, "delete")} className={buttonClass("outline", "sm")}>
+                      {locale === "hi" ? "मिटाएँ" : "Delete"}
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+
+        {tab === "buzz" ? (
+          <div className="rounded-2xl border border-navy-100 bg-white p-4">
+            <h2 className="text-sm font-extrabold text-navy-900">{locale === "hi" ? "ट्रेंडिंग बज़" : "Trending buzz"}</h2>
+            <form onSubmit={saveBuzz} className="mt-3 space-y-2 rounded-xl border border-navy-100 p-3">
+              <TextField label={locale === "hi" ? "शीर्षक (हिंदी)" : "Title (Hindi)"} value={buzzTitleHi} onChange={(event) => setBuzzTitleHi(event.target.value)} maxLength={160} />
+              <TextField label={locale === "hi" ? "शीर्षक (अंग्रेज़ी)" : "Title (English)"} value={buzzTitleEn} onChange={(event) => setBuzzTitleEn(event.target.value)} maxLength={160} />
+              <TextAreaField label={locale === "hi" ? "संक्षेप (हिंदी)" : "Summary (Hindi)"} value={buzzSummaryHi} onChange={(event) => setBuzzSummaryHi(event.target.value)} maxLength={600} />
+              <TextAreaField label={locale === "hi" ? "संक्षेप (अंग्रेज़ी)" : "Summary (English)"} value={buzzSummaryEn} onChange={(event) => setBuzzSummaryEn(event.target.value)} maxLength={600} />
+              <TextAreaField label={locale === "hi" ? "बॉडी (हिंदी)" : "Body (Hindi)"} value={buzzBodyHi} onChange={(event) => setBuzzBodyHi(event.target.value)} maxLength={4000} />
+              <TextAreaField label={locale === "hi" ? "बॉडी (अंग्रेज़ी)" : "Body (English)"} value={buzzBodyEn} onChange={(event) => setBuzzBodyEn(event.target.value)} maxLength={4000} />
+              <div className="grid gap-2 sm:grid-cols-2">
+                <SelectField label={locale === "hi" ? "श्रेणी" : "Category"} value={buzzCategory} onChange={(event) => setBuzzCategory(event.target.value)}>
+                  <option value="trending">trending</option>
+                  <option value="news">news</option>
+                  <option value="entertainment">entertainment</option>
+                  <option value="sports">sports</option>
+                  <option value="memes">memes</option>
+                  <option value="public_issues">public_issues</option>
+                </SelectField>
+                <SelectField label={locale === "hi" ? "प्लेटफ़ॉर्म" : "Platform"} value={buzzPlatform} onChange={(event) => setBuzzPlatform(event.target.value)}>
+                  <option value="youtube">youtube</option>
+                  <option value="twitter">twitter</option>
+                  <option value="instagram">instagram</option>
+                  <option value="news">news</option>
+                  <option value="video">video</option>
+                  <option value="other">other</option>
+                </SelectField>
+              </div>
+              <TextField label={locale === "hi" ? "स्रोत URL" : "Source URL"} type="url" value={buzzSourceUrl} onChange={(event) => setBuzzSourceUrl(event.target.value)} placeholder="https://" />
+              <SelectField label={locale === "hi" ? "स्थिति" : "Status"} value={buzzStatus} onChange={(event) => setBuzzStatus(event.target.value)}>
+                <option value="draft">draft</option>
+                <option value="published">published</option>
+              </SelectField>
+              <button type="submit" className={buttonClass("secondary", "sm")}>
+                {locale === "hi" ? "सहेजें" : "Save"}
+              </button>
+            </form>
+            <ul className="mt-3 space-y-2.5">
+              {(data.buzzPosts ?? []).map((post) => (
+                <li key={post.id} className="rounded-xl border border-navy-100 p-3.5">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-xs font-bold text-navy-800">{post.title.hi}</span>
+                    <Badge tone={post.status === "published" ? "teal" : "gold"}>{post.status}</Badge>
+                    <Badge tone="outline">{post.origin}</Badge>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    <button type="button" onClick={() => startBuzzEdit(post)} className={buttonClass("outline", "sm")}>
+                      {locale === "hi" ? "संपादन" : "Edit"}
+                    </button>
+                    {post.status !== "published" ? (
+                      <button type="button" onClick={() => void manageBuzz(post.id, "publish")} className={buttonClass("secondary", "sm")}>
+                        {locale === "hi" ? "प्रकाशित" : "Publish"}
+                      </button>
+                    ) : null}
+                    <button type="button" onClick={() => void manageBuzz(post.id, "unpublish")} className={buttonClass("outline", "sm")}>
+                      {locale === "hi" ? "अनप्रकाशित" : "Unpublish"}
+                    </button>
+                    <button type="button" onClick={() => void manageBuzz(post.id, "delete")} className={buttonClass("outline", "sm")}>
+                      {locale === "hi" ? "मिटाएँ" : "Delete"}
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
+
+        {tab === "ads" ? (
+          <div className="rounded-2xl border border-navy-100 bg-white p-4">
+            <h2 className="text-sm font-extrabold text-navy-900">{locale === "hi" ? "विज्ञापन अनुरोध" : "Advertising inquiries"}</h2>
+            <ul className="mt-3 space-y-2.5">
+              {(data.adInquiries ?? []).map((ad) => (
+                <li key={ad.id} className="rounded-xl border border-navy-100 p-3.5">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-xs font-bold text-navy-800">{ad.advertiserName}</span>
+                    <Badge tone={ad.status === "active" ? "teal" : "gold"}>{ad.status}</Badge>
+                    <Badge tone={ad.paymentStatus === "verified" ? "teal" : "neutral"}>{ad.paymentStatus}</Badge>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {ad.status !== "rejected" ? (
+                      <button type="button" onClick={() => void manageAd(ad.id, "approve")} className={buttonClass("secondary", "sm")}>
+                        {locale === "hi" ? "स्वीकृत" : "Approve"}
+                      </button>
+                    ) : null}
+                    {ad.status !== "rejected" ? (
+                      <button type="button" onClick={() => void manageAd(ad.id, "verify_payment")} className={buttonClass("outline", "sm")}>
+                        {locale === "hi" ? "भुगतान सत्यापित" : "Verify payment"}
+                      </button>
+                    ) : null}
+                    {ad.status !== "rejected" && ad.status !== "active" ? (
+                      <button type="button" onClick={() => void manageAd(ad.id, "activate")} className={buttonClass("secondary", "sm")}>
+                        {locale === "hi" ? "सक्रिय" : "Activate"}
+                      </button>
+                    ) : null}
+                    {ad.status === "active" ? (
+                      <button type="button" onClick={() => void manageAd(ad.id, "pause")} className={buttonClass("outline", "sm")}>
+                        {locale === "hi" ? "पॉज़" : "Pause"}
+                      </button>
+                    ) : null}
+                  </div>
+                </li>
+              ))}
+            </ul>
           </div>
         ) : null}
       </div>

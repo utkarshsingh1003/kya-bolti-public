@@ -32,6 +32,13 @@ const mainLinks = [
   { href: "/discussions", key: "community", icon: IconChat },
 ] as const;
 
+const infoLinks = [
+  { href: "/updates", key: "updates", icon: IconNews },
+  { href: "/trending", key: "trending", icon: IconNews },
+  { href: "/advertise", key: "advertise", icon: IconNews },
+  { href: "/account", key: "account", icon: IconUsers },
+] as const;
+
 const drawerLinks = [
   ...mainLinks,
   { href: "/qa", key: "qa", icon: IconQa },
@@ -118,6 +125,24 @@ export function SiteHeader() {
                 ) : null}
               </Link>
             ))}
+            {infoLinks.map((link) => {
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  aria-current={isActive(link.href) ? "page" : undefined}
+                  className={cn(
+                    "relative rounded-lg px-2.5 py-2 text-[0.82rem] font-semibold transition-colors xl:px-3",
+                    isActive(link.href) ? "text-brand-700" : "text-navy-700 hover:bg-navy-50 hover:text-navy-900",
+                  )}
+                >
+                  {t.nav[link.key]}
+                  {isActive(link.href) ? (
+                    <span className="absolute inset-x-2.5 -bottom-0.5 h-0.5 rounded-full bg-brand-500" />
+                  ) : null}
+                </Link>
+              );
+            })}
           </nav>
 
           <div className="ml-auto flex items-center gap-1.5">
@@ -246,6 +271,19 @@ export function SiteHeader() {
                   </Link>
                 );
               })}
+              {infoLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={cn(
+                    "flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm font-semibold",
+                    isActive(link.href) ? "bg-brand-50 text-brand-800" : "text-navy-800 hover:bg-navy-50",
+                  )}
+                >
+                  <IconNews className="h-5 w-5 text-navy-400" />
+                  {t.nav[link.key]}
+                </Link>
+              ))}
             </nav>
 
             <button
