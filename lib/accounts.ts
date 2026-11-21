@@ -1,8 +1,10 @@
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "crypto";
 import type { NextRequest } from "next/server";
-import type { PublicUser, User } from "@/lib/types";
+import type { User } from "@/lib/types";
 import { getUserById } from "@/lib/store";
 import { jsonError } from "@/lib/security";
+
+export { toPublicUser as publicUser } from "@/lib/public-user";
 
 const SESSION_COOKIE = "kbp_session";
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
@@ -39,11 +41,6 @@ export function verifyPassword(password: string, stored: string): boolean {
   const expectedBuffer = Buffer.from(expected, "hex");
   if (expectedBuffer.length !== derived.length) return false;
   return timingSafeEqual(derived, expectedBuffer);
-}
-
-export function publicUser(user: User): PublicUser {
-  const { passwordHash: _passwordHash, ...safe } = user;
-  return safe;
 }
 
 export function createSessionToken(userId: string): string {

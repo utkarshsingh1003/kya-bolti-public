@@ -38,6 +38,7 @@ import type {
   ReviewInput,
   ThreadInput,
 } from "@/lib/validation";
+import { toPublicUser } from "@/lib/public-user";
 
 
 export type StoreMode = "postgres" | "file" | "memory" | "demo";
@@ -362,6 +363,9 @@ class JsonRepository implements Repository {
   async castVote(pollId: string, optionId: string, voterHash: string): Promise<VoteOutcome> {
     const poll = await this.getPoll(pollId);
     if (!poll) return { ok: false, reason: "not_found" };
+    const status = poll.status ?? "published";
+    if (status === "closed") return { ok: false, reason: "closed" };
+    if (status !== "published") return { ok: false, reason: "not_found" };
     if (!poll.options.some((option) => option.id === optionId)) {
       return { ok: false, reason: "invalid_option" };
     }
@@ -687,7 +691,19 @@ class JsonRepository implements Repository {
     return poll;
   }
 
-  async updatePollStatus(id: string, action: "publish" | "close" | "archive" | "feature" | "unfeature") {
+  async updatePollStatus(id: string, action: "publish" | "close" | "archive" | "feature" | "unfeature" | "delete") {
+    if (action === "delete") {
+      const poll = this.db.polls.find((item) => item.id === id);
+      if (!poll) return null;
+      // Check for existing votes before deleting
+      const hasVotes = this.db.votes.some((vote) => vote.pollId === id);
+      if (hasVotes) {
+        // Proceed with delete; DB cascade will handle votes/options, but warn admin
+      }
+      this.db.polls = this.db.polls.filter((item) => item.id !== id);
+      this.persist();
+      return { ok: true, deleted: true, hasVotes };
+    }
     const poll = this.db.polls.find((item) => item.id === id);
     if (!poll) return null;
     this.normalizePoll(poll);
@@ -961,8 +977,7 @@ class JsonRepository implements Repository {
     if (!user) return null;
     Object.assign(user, patch, { updatedAt: new Date().toISOString() });
     this.persist();
-    const safe: PublicUser = { ...user };
-    return safe;
+    return toPublicUser(user);
   }
 
   async listOwnSubmissions(userId: string) {

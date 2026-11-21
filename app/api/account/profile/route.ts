@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 import { getRepository } from "@/lib/store";
 import { districtMatchesState, mutationGuard, noStore, readJson, validationError } from "@/lib/api";
 import { profileSchema } from "@/lib/validation";
-import { publicUser, requireUser } from "@/lib/accounts";
+import { requireUser } from "@/lib/accounts";
 
 export const dynamic = "force-dynamic";
 

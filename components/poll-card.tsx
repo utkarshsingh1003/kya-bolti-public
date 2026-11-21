@@ -33,7 +33,7 @@ export function PollCard({
   const [status, setStatus] = useState<"idle" | "voting" | "error">("idle");
   const [message, setMessage] = useState<string | null>(null);
   const [showResults, setShowResults] = useState(initial.hasVoted);
-  const closed = new Date(poll.poll.closesAt).getTime() < Date.now();
+  const closed = poll.poll.status !== "published" || new Date(poll.poll.closesAt).getTime() < Date.now();
   const reveal = showResults || poll.hasVoted || closed;
 
   async function vote() {

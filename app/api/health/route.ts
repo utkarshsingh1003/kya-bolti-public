@@ -22,7 +22,11 @@ export async function GET() {
     service: "kya-bolti-public",
     storage,
     persistent,
-    databaseError: databaseOk ? null : error,
+    databaseError: databaseOk
+      ? null
+      : process.env.NODE_ENV === "production"
+        ? "Database unavailable."
+        : error,
     adminConfigured: Boolean(process.env.ADMIN_PASSWORD && process.env.ADMIN_SESSION_SECRET),
     cronConfigured: Boolean(process.env.CRON_SECRET),
     timestamp: new Date().toISOString(),

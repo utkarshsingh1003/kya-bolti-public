@@ -267,7 +267,7 @@ export const pollCreateSchema = z.object({
 
 export const pollManageSchema = z.object({
   id: z.string().min(1).max(64),
-  action: z.enum(["publish", "close", "archive", "feature", "unfeature"]),
+  action: z.enum(["publish", "close", "archive", "feature", "unfeature", "delete"]),
 });
 
 export const pollRequestModerateSchema = z.object({
@@ -406,3 +406,58 @@ export function looksLikeSpam(text: string): boolean {
   const repeated = /(.)\1{14,}/.test(text);
   return repeated;
 }
+
+export const newsStatusValues = z.enum(["draft", "scheduled", "published"] as const);
+
+export const newsSourceInputSchema = z.object({
+  name: z.string().trim().min(1).max(200),
+  feedUrl: z.string().trim().url(),
+  language: z.enum(["hi", "en"]),
+  scope: z.string().trim().min(1).max(100),
+  enabled: z.boolean().optional(),
+  attribution: z.string().trim().max(200).optional(),
+  termsNote: z.string().trim().max(500).optional(),
+  category: z.string().trim().min(1).max(100),
+});
+
+export const newsSourceActionSchema = z.enum(["delete", "approve", "revoke", "enable", "disable"]);
+
+export const newsFetchRequestSchema = z.object({
+  sourceId: z.string().trim().min(1).max(64),
+});
+
+export const newsCategoryInputSchema = z.object({
+  id: z.string().trim().min(1).max(64),
+  nameHi: z.string().trim().min(1).max(200),
+  nameEn: z.string().trim().min(1).max(200),
+  sortOrder: z.coerce.number().int().min(0).optional(),
+  active: z.boolean().optional(),
+});
+
+export const newsAutomationSettingsSchema = z.object({
+  fetchEnabled: z.boolean().optional(),
+  autoPublishEnabled: z.boolean().optional(),
+});
+
+export const newsArticleManageSchema = z.object({
+  id: z.string().trim().min(1).max(64),
+  action: z.enum(["delete", "feature", "unfeature", "breaking", "unbreaking", "schedule", "approve_schedule"]),
+  note: z.string().trim().max(500).optional(),
+  publishAt: z.string().trim().optional(),
+});
+
+export const newsArticleInputSchema = z.object({
+  title: z.string().trim().min(1).max(200),
+  summary: z.string().trim().min(10).max(500),
+  content: z.string().trim().min(1).max(5000),
+  category: z.string().trim().min(1).max(100),
+  language: z.enum(["hi", "en"]),
+  sourceName: z.string().trim().max(200).optional(),
+  sourceUrl: z.string().trim().url().optional(),
+  originalUrl: z.string().trim().max(500).optional(),
+  tags: z.array(z.string().trim().min(1)).optional(),
+  featured: z.boolean().optional(),
+  breaking: z.boolean().optional(),
+  seoTitle: z.string().trim().max(200).optional(),
+  seoDescription: z.string().trim().max(500).optional(),
+});

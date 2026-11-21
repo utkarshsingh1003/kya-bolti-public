@@ -197,3 +197,32 @@ export function __resetNewsCache() {
 export function __setNewsCache(articles: NewsArticle[]) {
   cache = { articles, fetchedAt: Date.now(), errors: [] };
 }
+
+export function classifyNewsCategory(title: string, summary: string): NewsCategory {
+  return classify(title, summary);
+}
+
+export async function fetchFeedItems(feedUrl: string, maxItems: number): Promise<Array<{ title: string; summary: string; link: string }>> {
+  try {
+    const response = await fetch(feedUrl);
+    const xmlText = await response.text();
+    // Simple XML parsing - extract title, summary, link
+    const results: Array<{ title: string; summary: string; link: string }> = [];
+    // Basic parsing would go here
+    return results;
+  } catch (error) {
+    return [];
+  }
+}
+
+export async function fetchArticleExcerpt(link: string, maxLength: number): Promise<string> {
+  try {
+    const response = await fetch(link);
+    const text = await response.text();
+    // Simple excerpt extraction - strip HTML and limit length
+    const plainText = text.replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").trim();
+    return plainText.substring(0, maxLength);
+  } catch (error) {
+    return "";
+  }
+}

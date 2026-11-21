@@ -36,6 +36,8 @@
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "components/admin-poll-management.tsx",
+    "components/poll-approval-actions.tsx"
   ]
 }

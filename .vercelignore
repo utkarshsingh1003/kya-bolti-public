@@ -1,0 +1,47 @@
+# Local-only artifacts that must never be uploaded to a deployment.
+.env*.local
+.env.local.save
+kya-bolti-public/
+prod-ca-2021.crt
+migration-review.txt
+tests/.e2e-data/
+playwright-report/
+test-results/
+
+# Investigation / audit reports (not part of the app)
+ADD_POLL_SAVE_BUTTON_INVESTIGATION.md
+ADD_POLL_SAVE_FINAL_REPORT.md
+ADMIN_DASHBOARD_FIX_REPORT.md
+BUG_FIX_REPORT.md
+DEPLOYMENT_FINAL_REPORT.md
+IMPLEMENTATION_PLAN.md
+PRODUCTION_READINESS_AUDIT.md
+AUDIT_REPORT.md
+
+# Unfinished WIP features (parked out of the production build)
+app/api/admin/news/
+app/api/admin/vyang-baan/
+app/api/cron/news/publish/
+app/api/cron/polls/
+app/news/[slug]/
+components/admin-news.tsx
+components/admin-poll-management.tsx
+components/poll-approval-actions.tsx
+lib/news-service.ts
+lib/poll-duplicate.ts
+lib/poll-provider-types.ts
+lib/poll-validation.ts
+lib/audit-log.ts
+
+# WIP tests / scripts and unapplied local migrations
+tests/unit/news-management.test.ts
+tests/unit/migration-007.test.ts
+tests/unit/migration-008.test.ts
+tests/e2e/deployment.spec.ts
+scripts/provision-app-role.mjs
+db/migrations/007_reconcile_production_schema.sql
+db/migrations/008_app_role_rls.sql
+db/migrations/009_vyang_baan.sql
+db/migrations/010_news_management.sql
+db/migrations/011_news_article_geo.sql
+db/migrations/012_poll_fetch_history.sql

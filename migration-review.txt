@@ -1,0 +1,1012 @@
+
+========== db/migrations/001_init.sql ==========
+-- Kya Bolti Public — PostgreSQL schema
+-- Run with: npm run db:migrate
+-- All fact-sensitive tables carry source/verification metadata.
+
+create table if not exists polls (
+  id text primary key,
+  question_hi text not null,
+  question_en text not null,
+  description_hi text not null,
+  description_en text not null,
+  category text not null default 'civic',
+  closes_at timestamptz not null,
+  is_demo boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists poll_options (
+  id text primary key,
+  poll_id text not null references polls(id) on delete cascade,
+  label_hi text not null,
+  label_en text not null,
+  sort_order integer not null default 0
+);
+
+create table if not exists poll_votes (
+  id bigserial primary key,
+  poll_id text not null references polls(id) on delete cascade,
+  option_id text not null references poll_options(id) on delete cascade,
+  voter_hash text not null,
+  created_at timestamptz not null default now(),
+  unique (poll_id, voter_hash)
+);
+
+create table if not exists issues (
+  id text primary key,
+  tracking_code text not null unique,
+  category text not null,
+  title text not null,
+  description text not null,
+  area text not null,
+  district_id text not null,
+  state_id text not null,
+  pin text,
+  status text not null default 'submitted',
+  is_demo boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  official_complaint_url text,
+  events jsonb not null default '[]'::jsonb
+);
+
+-- CREATE TABLE IF NOT EXISTS does not add columns to a pre-existing issues table.
+alter table issues add column if not exists pin text;
+
+create index if not exists issues_district_idx on issues (district_id, created_at desc);
+create index if not exists issues_status_idx on issues (status);
+
+create table if not exists reviews (
+  id text primary key,
+  service_category text not null,
+  rating integer not null check (rating between 1 and 5),
+  title text not null,
+  body text not null,
+  area text not null,
+  district_id text not null,
+  state_id text not null,
+  display_name text,
+  status text not null default 'published',
+  is_demo boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists reviews_district_idx on reviews (district_id, created_at desc);
+
+create table if not exists threads (
+  id text primary key,
+  title text not null,
+  body text not null,
+  category text not null,
+  district_id text not null,
+  state_id text not null,
+  author_alias text not null,
+  is_demo boolean not null default false,
+  created_at timestamptz not null default now(),
+  reply_count integer not null default 0,
+  status text not null default 'published'
+);
+
+create index if not exists threads_district_idx on threads (district_id, created_at desc);
+
+create table if not exists replies (
+  id text primary key,
+  thread_id text not null references threads(id) on delete cascade,
+  body text not null,
+  author_alias text not null,
+  is_demo boolean not null default false,
+  created_at timestamptz not null default now(),
+  status text not null default 'published'
+);
+
+create table if not exists questions (
+  id text primary key,
+  question text not null,
+  answer text,
+  answer_status text not null default 'pending',
+  sources jsonb not null default '[]'::jsonb,
+  district_id text,
+  state_id text,
+  is_demo boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists reports (
+  id text primary key,
+  target_type text not null,
+  target_id text not null,
+  reason text not null,
+  details text,
+  status text not null default 'open',
+  created_at timestamptz not null default now()
+);
+
+create table if not exists representatives (
+  id text primary key,
+  name text not null,
+  role text not null,
+  constituency text not null,
+  district_id text,
+  state_id text not null,
+  party text,
+  official_contact text,
+  official_source_url text not null,
+  verification_status text not null default 'verified',
+  last_verified_at timestamptz not null,
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists representatives_district_idx on representatives (district_id, role);
+
+create table if not exists contact_messages (
+  id text primary key,
+  name text,
+  email text,
+  subject text not null,
+  message text not null,
+  status text not null default 'open',
+  created_at timestamptz not null default now()
+);
+
+create index if not exists contact_messages_status_idx on contact_messages (status, created_at desc);
+
+create table if not exists moderation_actions (
+  id bigserial primary key,
+  actor text not null default 'admin',
+  action text not null,
+  target_type text not null,
+  target_id text not null,
+  note text,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists news_sources (
+  id text primary key,
+  name text not null,
+  feed_url text not null,
+  language text not null,
+  scope text not null,
+  enabled boolean not null default false,
+  attribution text not null,
+  terms_note text not null,
+  last_fetched_at timestamptz
+);
+
+========== db/migrations/002_content_and_accounts.sql ==========
+-- Kya Bolti Public — migration 002
+-- Adds accounts, poll management, poll requests, public updates,
+-- trending buzz posts and advertising inquiries.
+-- Safe to run repeatedly: every statement is idempotent.
+
+-- 001 may have been skipped or only partially applied (e.g. dashboard-created
+-- `issues` without `polls`). CREATE TABLE IF NOT EXISTS is a no-op when present.
+create table if not exists polls (
+  id text primary key,
+  question_hi text not null,
+  question_en text not null,
+  description_hi text not null,
+  description_en text not null,
+  category text not null default 'civic',
+  closes_at timestamptz not null,
+  is_demo boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists poll_options (
+  id text primary key,
+  poll_id text not null references polls(id) on delete cascade,
+  label_hi text not null,
+  label_en text not null,
+  sort_order integer not null default 0
+);
+
+create table if not exists poll_votes (
+  id bigserial primary key,
+  poll_id text not null references polls(id) on delete cascade,
+  option_id text not null references poll_options(id) on delete cascade,
+  voter_hash text not null,
+  created_at timestamptz not null default now(),
+  unique (poll_id, voter_hash)
+);
+
+alter table issues add column if not exists pin text;
+
+alter table polls add column if not exists status text not null default 'published';
+alter table polls add column if not exists featured boolean not null default false;
+alter table polls add column if not exists sponsored boolean not null default false;
+alter table polls add column if not exists sponsor_label_hi text;
+alter table polls add column if not exists sponsor_label_en text;
+
+create index if not exists polls_status_idx on polls (status, created_at desc);
+
+-- Ownership links keep "my submissions" private and server-enforced.
+alter table issues add column if not exists owner_id text;
+alter table reviews add column if not exists owner_id text;
+alter table threads add column if not exists owner_id text;
+alter table questions add column if not exists owner_id text;
+
+create index if not exists issues_owner_idx on issues (owner_id, created_at desc);
+create index if not exists reviews_owner_idx on reviews (owner_id, created_at desc);
+create index if not exists threads_owner_idx on threads (owner_id, created_at desc);
+create index if not exists questions_owner_idx on questions (owner_id, created_at desc);
+
+create table if not exists users (
+  id text primary key,
+  email text not null unique,
+  display_name text not null,
+  password_hash text not null,
+  state_id text,
+  district_id text,
+  pin text,
+  area text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists quiz_scores (
+  id text primary key,
+  user_id text not null references users(id) on delete cascade,
+  quiz_slug text not null,
+  score integer not null check (score >= 0),
+  total integer not null check (total > 0 and score <= total),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (user_id, quiz_slug)
+);
+
+create index if not exists quiz_scores_slug_idx on quiz_scores (quiz_slug, score desc);
+
+create table if not exists poll_requests (
+  id text primary key,
+  question_hi text not null,
+  question_en text not null,
+  options_hi jsonb not null default '[]'::jsonb,
+  options_en jsonb not null default '[]'::jsonb,
+  category text not null,
+  purpose text not null,
+  contact text,
+  state_id text not null,
+  district_id text not null,
+  status text not null default 'pending',
+  admin_note text,
+  created_poll_id text references polls(id) on delete set null,
+  owner_id text references users(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists poll_requests_status_idx on poll_requests (status, created_at desc);
+
+create table if not exists announcements (
+  id text primary key,
+  title_hi text not null,
+  title_en text not null,
+  body_hi text not null,
+  body_en text not null,
+  category text not null default 'notice',
+  state_id text,
+  district_id text,
+  source_label text,
+  source_url text,
+  image_url text,
+  status text not null default 'draft',
+  publish_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists announcements_status_idx on announcements (status, publish_at desc);
+create index if not exists announcements_locality_idx on announcements (state_id, district_id, publish_at desc);
+
+create table if not exists buzz_posts (
+  id text primary key,
+  title_hi text not null,
+  title_en text not null,
+  summary_hi text not null,
+  summary_en text not null,
+  body_hi text not null default '',
+  body_en text not null default '',
+  category text not null default 'trending',
+  platform text not null,
+  source_url text,
+  image_url text,
+  status text not null default 'draft',
+  origin text not null default 'admin',
+  submitted_by text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  published_at timestamptz
+);
+
+create index if not exists buzz_posts_status_idx on buzz_posts (status, published_at desc);
+
+create table if not exists ad_inquiries (
+  id text primary key,
+  advertiser_name text not null,
+  email text not null,
+  phone text not null,
+  objective text not null,
+  budget_range text not null,
+  placement text not null,
+  destination_url text not null,
+  creative_url text,
+  campaign_start timestamptz,
+  campaign_end timestamptz,
+  status text not null default 'pending',
+  payment_status text not null default 'unpaid',
+  admin_note text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists ad_inquiries_status_idx on ad_inquiries (status, created_at desc);
+
+-- ============================
+-- Row Level Security (RLS) policies
+-- These policies are safe to run; they deny anon access and allow service_role full access.
+-- The application uses custom session auth (AUTH_SECRET), so anon access is blocked.
+-- If Supabase Auth is later enabled, adjust policies accordingly.
+-- ============================
+-- Enable RLS on critical tables
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE ad_inquiries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE quiz_scores ENABLE ROW LEVEL SECURITY;
+ALTER TABLE poll_requests ENABLE ROW LEVEL SECURITY;
+
+-- Deny all access to anon users (anonymous browser sessions)
+CREATE POLICY "users_no_anon" ON users FOR ALL TO anon USING (false) WITH CHECK (false);
+CREATE POLICY "ad_inquiries_no_anon" ON ad_inquiries FOR ALL TO anon USING (false) WITH CHECK (false);
+CREATE POLICY "quiz_scores_no_anon" ON quiz_scores FOR ALL TO anon USING (false) WITH CHECK (false);
+CREATE POLICY "poll_requests_no_anon" ON poll_requests FOR ALL TO anon USING (false) WITH CHECK (false);
+
+-- Allow the Supabase service_role (server‑only) full access to these tables
+CREATE POLICY "service_role_full_access_users" ON users FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "service_role_full_access_ad_inquiries" ON ad_inquiries FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "service_role_full_access_quiz_scores" ON quiz_scores FOR ALL TO service_role USING (true) WITH CHECK (true);
+CREATE POLICY "service_role_full_access_poll_requests" ON poll_requests FOR ALL TO service_role USING (true) WITH CHECK (true);
+
+========== db/migrations/003_repair_polls_and_issues_pin.sql ==========
+-- Repair schema drift on databases where 001/002 are already recorded as
+-- applied but `polls` was never created and/or `issues` lacks `pin`.
+-- Idempotent: does not drop tables or rewrite rows.
+
+create table if not exists polls (
+  id text primary key,
+  question_hi text not null,
+  question_en text not null,
+  description_hi text not null,
+  description_en text not null,
+  category text not null default 'civic',
+  closes_at timestamptz not null,
+  is_demo boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists poll_options (
+  id text primary key,
+  poll_id text not null references polls(id) on delete cascade,
+  label_hi text not null,
+  label_en text not null,
+  sort_order integer not null default 0
+);
+
+create table if not exists poll_votes (
+  id bigserial primary key,
+  poll_id text not null references polls(id) on delete cascade,
+  option_id text not null references poll_options(id) on delete cascade,
+  voter_hash text not null,
+  created_at timestamptz not null default now(),
+  unique (poll_id, voter_hash)
+);
+
+alter table polls add column if not exists status text not null default 'published';
+alter table polls add column if not exists featured boolean not null default false;
+alter table polls add column if not exists sponsored boolean not null default false;
+alter table polls add column if not exists sponsor_label_hi text;
+alter table polls add column if not exists sponsor_label_en text;
+
+create index if not exists polls_status_idx on polls (status, created_at desc);
+
+alter table issues add column if not exists pin text;
+alter table issues add column if not exists owner_id text;
+
+create index if not exists issues_district_idx on issues (district_id, created_at desc);
+create index if not exists issues_status_idx on issues (status);
+create index if not exists issues_owner_idx on issues (owner_id, created_at desc);
+
+========== db/migrations/004_reconcile_schema.sql ==========
+-- Kya Bolti Public — migration 004
+-- Additive schema reconciliation for databases where 001/002 are recorded as
+-- applied but a table was created out-of-band with a different shape.
+--
+-- Rules:
+--  * Never drops or rewrites data.
+--  * Every column is added with ADD COLUMN IF NOT EXISTS.
+--  * A missing table is skipped with a warning instead of aborting the file,
+--    so 005/006 can still run on a partially applied database.
+--  * Non-null columns are only added when a safe default exists. Columns whose
+--    existing rows could not satisfy NOT NULL are added nullable.
+--  * users.password_hash is deliberately nullable until a null-count check has
+--    been reviewed.
+
+do $$
+declare
+  expected record;
+  missing text[] := array[]::text[];
+begin
+  for expected in
+    select *
+    from (values
+      -- polls
+      ('polls', 'status', 'text not null default ''published'''),
+      ('polls', 'featured', 'boolean not null default false'),
+      ('polls', 'sponsored', 'boolean not null default false'),
+      ('polls', 'sponsor_label_hi', 'text'),
+      ('polls', 'sponsor_label_en', 'text'),
+
+      -- poll_options
+      ('poll_options', 'poll_id', 'text'),
+      ('poll_options', 'label_hi', 'text'),
+      ('poll_options', 'label_en', 'text'),
+      ('poll_options', 'sort_order', 'integer not null default 0'),
+
+      -- poll_votes
+      ('poll_votes', 'poll_id', 'text'),
+      ('poll_votes', 'option_id', 'text'),
+      ('poll_votes', 'voter_hash', 'text'),
+      ('poll_votes', 'created_at', 'timestamptz not null default now()'),
+
+      -- issues
+      ('issues', 'tracking_code', 'text'),
+      ('issues', 'category', 'text'),
+      ('issues', 'title', 'text'),
+      ('issues', 'description', 'text'),
+      ('issues', 'area', 'text'),
+      ('issues', 'district_id', 'text'),
+      ('issues', 'state_id', 'text'),
+      ('issues', 'pin', 'text'),
+      ('issues', 'status', 'text not null default ''submitted'''),
+      ('issues', 'is_demo', 'boolean not null default false'),
+      ('issues', 'created_at', 'timestamptz not null default now()'),
+      ('issues', 'updated_at', 'timestamptz not null default now()'),
+      ('issues', 'official_complaint_url', 'text'),
+      ('issues', 'events', 'jsonb not null default ''[]''::jsonb'),
+      ('issues', 'owner_id', 'text'),
+
+      -- reviews
+      ('reviews', 'service_category', 'text'),
+      ('reviews', 'rating', 'integer'),
+      ('reviews', 'title', 'text'),
+      ('reviews', 'body', 'text'),
+      ('reviews', 'area', 'text'),
+      ('reviews', 'district_id', 'text'),
+      ('reviews', 'state_id', 'text'),
+      ('reviews', 'display_name', 'text'),
+      ('reviews', 'status', 'text not null default ''published'''),
+      ('reviews', 'is_demo', 'boolean not null default false'),
+      ('reviews', 'created_at', 'timestamptz not null default now()'),
+      ('reviews', 'owner_id', 'text'),
+
+      -- threads
+      ('threads', 'title', 'text'),
+      ('threads', 'body', 'text'),
+      ('threads', 'category', 'text'),
+      ('threads', 'district_id', 'text'),
+      ('threads', 'state_id', 'text'),
+      ('threads', 'author_alias', 'text'),
+      ('threads', 'is_demo', 'boolean not null default false'),
+      ('threads', 'created_at', 'timestamptz not null default now()'),
+      ('threads', 'reply_count', 'integer not null default 0'),
+      ('threads', 'status', 'text not null default ''published'''),
+      ('threads', 'owner_id', 'text'),
+
+      -- replies
+      ('replies', 'thread_id', 'text'),
+      ('replies', 'body', 'text'),
+      ('replies', 'author_alias', 'text'),
+      ('replies', 'is_demo', 'boolean not null default false'),
+      ('replies', 'created_at', 'timestamptz not null default now()'),
+      ('replies', 'status', 'text not null default ''published'''),
+
+      -- questions
+      ('questions', 'question', 'text'),
+      ('questions', 'answer', 'text'),
+      ('questions', 'answer_status', 'text not null default ''pending'''),
+      ('questions', 'sources', 'jsonb not null default ''[]''::jsonb'),
+      ('questions', 'district_id', 'text'),
+      ('questions', 'state_id', 'text'),
+      ('questions', 'is_demo', 'boolean not null default false'),
+      ('questions', 'created_at', 'timestamptz not null default now()'),
+      ('questions', 'owner_id', 'text'),
+
+      -- reports
+      ('reports', 'target_type', 'text'),
+      ('reports', 'target_id', 'text'),
+      ('reports', 'reason', 'text'),
+      ('reports', 'details', 'text'),
+      ('reports', 'status', 'text not null default ''open'''),
+      ('reports', 'created_at', 'timestamptz not null default now()'),
+
+      -- representatives
+      ('representatives', 'name', 'text'),
+      ('representatives', 'role', 'text'),
+      ('representatives', 'constituency', 'text'),
+      ('representatives', 'district_id', 'text'),
+      ('representatives', 'state_id', 'text'),
+      ('representatives', 'party', 'text'),
+      ('representatives', 'official_contact', 'text'),
+      ('representatives', 'official_source_url', 'text'),
+      ('representatives', 'verification_status', 'text not null default ''verified'''),
+      ('representatives', 'last_verified_at', 'timestamptz'),
+      ('representatives', 'updated_at', 'timestamptz not null default now()'),
+
+      -- contact_messages
+      ('contact_messages', 'name', 'text'),
+      ('contact_messages', 'email', 'text'),
+      ('contact_messages', 'subject', 'text'),
+      ('contact_messages', 'message', 'text'),
+      ('contact_messages', 'status', 'text not null default ''open'''),
+      ('contact_messages', 'created_at', 'timestamptz not null default now()'),
+
+      -- moderation_actions
+      ('moderation_actions', 'actor', 'text not null default ''admin'''),
+      ('moderation_actions', 'action', 'text'),
+      ('moderation_actions', 'target_type', 'text'),
+      ('moderation_actions', 'target_id', 'text'),
+      ('moderation_actions', 'note', 'text'),
+      ('moderation_actions', 'created_at', 'timestamptz not null default now()'),
+
+      -- news_sources
+      ('news_sources', 'name', 'text'),
+      ('news_sources', 'feed_url', 'text'),
+      ('news_sources', 'language', 'text'),
+      ('news_sources', 'scope', 'text'),
+      ('news_sources', 'enabled', 'boolean not null default false'),
+      ('news_sources', 'attribution', 'text'),
+      ('news_sources', 'terms_note', 'text'),
+      ('news_sources', 'last_fetched_at', 'timestamptz'),
+
+      -- users (password_hash intentionally nullable)
+      ('users', 'email', 'text'),
+      ('users', 'display_name', 'text'),
+      ('users', 'password_hash', 'text'),
+      ('users', 'state_id', 'text'),
+      ('users', 'district_id', 'text'),
+      ('users', 'pin', 'text'),
+      ('users', 'area', 'text'),
+      ('users', 'created_at', 'timestamptz not null default now()'),
+      ('users', 'updated_at', 'timestamptz not null default now()'),
+
+      -- quiz_scores
+      ('quiz_scores', 'user_id', 'text'),
+      ('quiz_scores', 'quiz_slug', 'text'),
+      ('quiz_scores', 'score', 'integer not null default 0'),
+      ('quiz_scores', 'total', 'integer not null default 0'),
+      ('quiz_scores', 'created_at', 'timestamptz not null default now()'),
+      ('quiz_scores', 'updated_at', 'timestamptz not null default now()'),
+
+      -- poll_requests
+      ('poll_requests', 'question_hi', 'text'),
+      ('poll_requests', 'question_en', 'text'),
+      ('poll_requests', 'options_hi', 'jsonb not null default ''[]''::jsonb'),
+      ('poll_requests', 'options_en', 'jsonb not null default ''[]''::jsonb'),
+      ('poll_requests', 'category', 'text'),
+      ('poll_requests', 'purpose', 'text'),
+      ('poll_requests', 'contact', 'text'),
+      ('poll_requests', 'state_id', 'text'),
+      ('poll_requests', 'district_id', 'text'),
+      ('poll_requests', 'status', 'text not null default ''pending'''),
+      ('poll_requests', 'admin_note', 'text'),
+      ('poll_requests', 'created_poll_id', 'text'),
+      ('poll_requests', 'owner_id', 'text'),
+      ('poll_requests', 'created_at', 'timestamptz not null default now()'),
+      ('poll_requests', 'updated_at', 'timestamptz not null default now()'),
+
+      -- announcements
+      ('announcements', 'title_hi', 'text'),
+      ('announcements', 'title_en', 'text'),
+      ('announcements', 'body_hi', 'text'),
+      ('announcements', 'body_en', 'text'),
+      ('announcements', 'category', 'text not null default ''notice'''),
+      ('announcements', 'state_id', 'text'),
+      ('announcements', 'district_id', 'text'),
+      ('announcements', 'source_label', 'text'),
+      ('announcements', 'source_url', 'text'),
+      ('announcements', 'image_url', 'text'),
+      ('announcements', 'status', 'text not null default ''draft'''),
+      ('announcements', 'publish_at', 'timestamptz'),
+      ('announcements', 'created_at', 'timestamptz not null default now()'),
+      ('announcements', 'updated_at', 'timestamptz not null default now()'),
+
+      -- buzz_posts
+      ('buzz_posts', 'title_hi', 'text'),
+      ('buzz_posts', 'title_en', 'text'),
+      ('buzz_posts', 'summary_hi', 'text'),
+      ('buzz_posts', 'summary_en', 'text'),
+      ('buzz_posts', 'body_hi', 'text'),
+      ('buzz_posts', 'body_en', 'text'),
+      ('buzz_posts', 'category', 'text not null default ''trending'''),
+      ('buzz_posts', 'platform', 'text'),
+      ('buzz_posts', 'source_url', 'text'),
+      ('buzz_posts', 'image_url', 'text'),
+      ('buzz_posts', 'status', 'text not null default ''draft'''),
+      ('buzz_posts', 'origin', 'text not null default ''admin'''),
+      ('buzz_posts', 'submitted_by', 'text'),
+      ('buzz_posts', 'created_at', 'timestamptz not null default now()'),
+      ('buzz_posts', 'updated_at', 'timestamptz not null default now()'),
+      ('buzz_posts', 'published_at', 'timestamptz'),
+
+      -- ad_inquiries
+      ('ad_inquiries', 'advertiser_name', 'text'),
+      ('ad_inquiries', 'email', 'text'),
+      ('ad_inquiries', 'phone', 'text'),
+      ('ad_inquiries', 'objective', 'text'),
+      ('ad_inquiries', 'budget_range', 'text'),
+      ('ad_inquiries', 'placement', 'text'),
+      ('ad_inquiries', 'destination_url', 'text'),
+      ('ad_inquiries', 'creative_url', 'text'),
+      ('ad_inquiries', 'campaign_start', 'timestamptz'),
+      ('ad_inquiries', 'campaign_end', 'timestamptz'),
+      ('ad_inquiries', 'status', 'text not null default ''pending'''),
+      ('ad_inquiries', 'payment_status', 'text not null default ''unpaid'''),
+      ('ad_inquiries', 'admin_note', 'text'),
+      ('ad_inquiries', 'created_at', 'timestamptz not null default now()'),
+      ('ad_inquiries', 'updated_at', 'timestamptz not null default now()')
+    ) as expected_columns(table_name, column_name, column_definition)
+  loop
+    if to_regclass(format('public.%I', expected.table_name)) is null then
+      if not (expected.table_name = any(missing)) then
+        missing := missing || expected.table_name;
+      end if;
+      continue;
+    end if;
+
+    execute format(
+      'alter table public.%I add column if not exists %I %s',
+      expected.table_name,
+      expected.column_name,
+      expected.column_definition
+    );
+  end loop;
+
+  if cardinality(missing) > 0 then
+    raise warning 'KBP 004: skipped missing tables: %', array_to_string(missing, ', ');
+  end if;
+end $$;
+
+========== db/migrations/005_rls_policies.sql ==========
+-- Kya Bolti Public — migration 005
+-- Supabase/PostgREST defense in depth.
+--
+-- The application talks to Postgres directly as the table owner, so RLS is not
+-- part of its authorization model. These policies only close the anonymous
+-- PostgREST surface. Rules:
+--  * Do nothing when the Supabase roles are absent (plain Postgres, Neon, CI).
+--  * Never enable RLS when the migration role is anon/authenticated, and skip a
+--    table when the migration role neither owns it nor bypasses RLS. This keeps
+--    login, voting, submissions and admin access working.
+--  * Recognise the policy names created by 002 as well as the canonical names
+--    used here, so re-running cannot create duplicate permissive policies.
+--  * Protect schema_migrations from anon/authenticated access.
+
+do $$
+declare
+  tbl text;
+  actor text := current_user;
+  actor_bypasses boolean := false;
+  owns_table boolean := false;
+  app_tables text[] := array[
+    'polls',
+    'poll_options',
+    'poll_votes',
+    'issues',
+    'reviews',
+    'threads',
+    'replies',
+    'questions',
+    'reports',
+    'representatives',
+    'contact_messages',
+    'users',
+    'quiz_scores',
+    'poll_requests',
+    'announcements',
+    'buzz_posts',
+    'ad_inquiries',
+    'news_sources',
+    'moderation_actions'
+  ];
+begin
+  if not exists (select 1 from pg_roles where rolname = 'anon')
+     and not exists (select 1 from pg_roles where rolname = 'service_role') then
+    raise notice 'KBP 005: anon/service_role roles are absent; skipping Supabase RLS setup';
+    return;
+  end if;
+
+  if actor in ('anon', 'authenticated') then
+    raise exception 'KBP 005: current_user is %; refusing to enable RLS because that would lock out the application', actor
+      using hint = 'Run migrations as the table owner (for example postgres) or service_role.';
+  end if;
+
+  select coalesce(bool_or(rolsuper or rolbypassrls), false)
+  into actor_bypasses
+  from pg_roles
+  where rolname = actor;
+
+  foreach tbl in array app_tables loop
+    if to_regclass(format('public.%I', tbl)) is null then
+      raise notice 'KBP 005: skipping missing table %', tbl;
+      continue;
+    end if;
+
+    select exists (
+      select 1
+      from pg_class c
+      join pg_roles r on r.oid = c.relowner
+      where c.oid = to_regclass(format('public.%I', tbl))
+        and r.rolname = actor
+    ) into owns_table;
+
+    if not owns_table and not actor_bypasses then
+      raise warning 'KBP 005: current_user % neither owns % nor bypasses RLS; skipping to preserve access', actor, tbl;
+      continue;
+    end if;
+
+    execute format('alter table public.%I enable row level security', tbl);
+
+    -- Deny anon exactly once. 002 used <table>_no_anon; this migration uses
+    -- <table>_anon_deny. Checking both names makes the operation idempotent.
+    if exists (select 1 from pg_roles where rolname = 'anon')
+       and not exists (
+         select 1
+         from pg_policies
+         where schemaname = 'public'
+           and tablename = tbl
+           and policyname::text in (tbl || '_no_anon', tbl || '_anon_deny')
+       ) then
+      execute format(
+        'create policy %I on public.%I for all to anon using (false) with check (false)',
+        tbl || '_anon_deny',
+        tbl
+      );
+    end if;
+
+    -- Allow service_role exactly once. 002 used service_role_full_access_<table>;
+    -- any existing permissive FOR ALL service_role policy is treated as a match.
+    if exists (select 1 from pg_roles where rolname = 'service_role')
+       and not exists (
+         select 1
+         from pg_policies
+         where schemaname = 'public'
+           and tablename = tbl
+           and 'service_role'::name = any(roles)
+           and cmd = 'ALL'
+       ) then
+      execute format(
+        'create policy %I on public.%I for all to service_role using (true) with check (true)',
+        tbl || '_service_all',
+        tbl
+      );
+    end if;
+  end loop;
+
+  -- Migration history is infrastructure, not application data. Enable RLS (no
+  -- policies means deny-by-default for non-bypassing roles) and revoke the
+  -- default Supabase grants.
+  if to_regclass('public.schema_migrations') is not null then
+    select exists (
+      select 1
+      from pg_class c
+      join pg_roles r on r.oid = c.relowner
+      where c.oid = to_regclass('public.schema_migrations')
+        and r.rolname = actor
+    ) into owns_table;
+
+    if owns_table or actor_bypasses then
+      execute 'alter table public.schema_migrations enable row level security';
+
+      if exists (select 1 from pg_roles where rolname = 'anon') then
+        execute 'revoke all on table public.schema_migrations from anon';
+      end if;
+
+      if exists (select 1 from pg_roles where rolname = 'authenticated') then
+        execute 'revoke all on table public.schema_migrations from authenticated';
+      end if;
+    else
+      raise warning 'KBP 005: skipping schema_migrations protection because current_user % does not own it', actor;
+    end if;
+  end if;
+end $$;
+
+========== db/migrations/006_foreign_keys_and_indexes.sql ==========
+-- Kya Bolti Public — migration 006
+-- Ownership foreign keys only.
+--
+-- Rules:
+--  * Only the four owner_id -> users(id) keys are added. The composite
+--    poll_votes(option_id, poll_id) key is deliberately omitted: castVote()
+--    already verifies option ownership, so the extra key/index is redundant.
+--  * FKs are added NOT VALID to avoid a long table scan and lock. They are
+--    validated in a second pass only when the orphan count is zero.
+--  * Missing tables, missing columns and incompatible types are skipped with a
+--    warning instead of aborting the migration.
+--  * No redundant indexes are added.
+
+do $$
+declare
+  rec record;
+  orphans bigint;
+  users_oid oid := to_regclass('public.users');
+  users_id_type text;
+  users_id_attnum smallint;
+begin
+  if users_oid is null then
+    raise notice 'KBP 006: public.users is missing; skipping owner foreign keys';
+    return;
+  end if;
+
+  select a.attnum
+  into users_id_attnum
+  from pg_attribute a
+  where a.attrelid = users_oid
+    and a.attname = 'id'
+    and not a.attisdropped;
+
+  select c.data_type
+  into users_id_type
+  from information_schema.columns c
+  where c.table_schema = 'public'
+    and c.table_name = 'users'
+    and c.column_name = 'id';
+
+  if users_id_attnum is null
+     or users_id_type not in ('text', 'character varying') then
+    raise warning 'KBP 006: public.users.id is missing or not a text type; skipping owner foreign keys';
+    return;
+  end if;
+
+  -- A foreign key needs a primary key or unique constraint on users(id).
+  if not exists (
+    select 1
+    from pg_constraint c
+    where c.conrelid = users_oid
+      and c.contype in ('p', 'u')
+      and c.conkey = array[users_id_attnum]
+  ) then
+    raise warning 'KBP 006: public.users.id has no primary key or unique constraint; skipping owner foreign keys';
+    return;
+  end if;
+
+  -- Pass 1: add the keys as NOT VALID. Existing rows are not scanned.
+  for rec in
+    select *
+    from (values
+      ('issues', 'issues_owner_id_fkey'),
+      ('reviews', 'reviews_owner_id_fkey'),
+      ('threads', 'threads_owner_id_fkey'),
+      ('questions', 'questions_owner_id_fkey')
+    ) as owner_fks(table_name, constraint_name)
+  loop
+    if to_regclass(format('public.%I', rec.table_name)) is null then
+      raise notice 'KBP 006: skipping % because %. is missing', rec.constraint_name, rec.table_name;
+      continue;
+    end if;
+
+    if not exists (
+      select 1
+      from information_schema.columns c
+      where c.table_schema = 'public'
+        and c.table_name = rec.table_name
+        and c.column_name = 'owner_id'
+    ) then
+      raise notice 'KBP 006: skipping % because %.owner_id is missing', rec.constraint_name, rec.table_name;
+      continue;
+    end if;
+
+    if not exists (
+      select 1
+      from information_schema.columns c
+      where c.table_schema = 'public'
+        and c.table_name = rec.table_name
+        and c.column_name = 'owner_id'
+        and c.data_type in ('text', 'character varying')
+    ) then
+      raise notice 'KBP 006: skipping % because %.owner_id is not a text type', rec.constraint_name, rec.table_name;
+      continue;
+    end if;
+
+    if exists (
+      select 1
+      from pg_constraint c
+      where c.conname::text = rec.constraint_name
+        and c.conrelid = to_regclass(format('public.%I', rec.table_name))
+    ) then
+      continue;
+    end if;
+
+    -- Skip if an equivalent owner_id -> users(id) key already exists under a
+    -- different name.
+    if exists (
+      select 1
+      from pg_constraint c
+      where c.conrelid = to_regclass(format('public.%I', rec.table_name))
+        and c.contype = 'f'
+        and c.confrelid = users_oid
+        and exists (
+          select 1
+          from pg_attribute a
+          where a.attrelid = c.conrelid
+            and a.attnum = any(c.conkey)
+            and a.attname = 'owner_id'
+        )
+    ) then
+      continue;
+    end if;
+
+    execute format(
+      'alter table public.%I add constraint %I foreign key (owner_id) references public.users(id) on delete set null not valid',
+      rec.table_name,
+      rec.constraint_name
+    );
+  end loop;
+
+  -- Pass 2: validate only when there are no orphaned owner_id values.
+  for rec in
+    select *
+    from (values
+      ('issues', 'issues_owner_id_fkey'),
+      ('reviews', 'reviews_owner_id_fkey'),
+      ('threads', 'threads_owner_id_fkey'),
+      ('questions', 'questions_owner_id_fkey')
+    ) as owner_fks(table_name, constraint_name)
+  loop
+    if to_regclass(format('public.%I', rec.table_name)) is null then
+      continue;
+    end if;
+
+    if not exists (
+      select 1
+      from information_schema.columns c
+      where c.table_schema = 'public'
+        and c.table_name = rec.table_name
+        and c.column_name = 'owner_id'
+    ) then
+      continue;
+    end if;
+
+    if not exists (
+      select 1
+      from pg_constraint c
+      where c.conname::text = rec.constraint_name
+        and c.conrelid = to_regclass(format('public.%I', rec.table_name))
+    ) then
+      continue;
+    end if;
+
+    if exists (
+      select 1
+      from pg_constraint c
+      where c.conname::text = rec.constraint_name
+        and c.conrelid = to_regclass(format('public.%I', rec.table_name))
+        and c.convalidated
+    ) then
+      continue;
+    end if;
+
+    execute format(
+      'select count(*) from public.%I t where t.owner_id is not null and not exists (select 1 from public.users u where u.id = t.owner_id)',
+      rec.table_name
+    ) into orphans;
+
+    if orphans > 0 then
+      raise warning 'KBP 006: % orphaned owner_id row(s) in %; constraint % left NOT VALID', orphans, rec.table_name, rec.constraint_name;
+    else
+      execute format(
+        'alter table public.%I validate constraint %I',
+        rec.table_name,
+        rec.constraint_name
+      );
+    end if;
+  end loop;
+end $$;

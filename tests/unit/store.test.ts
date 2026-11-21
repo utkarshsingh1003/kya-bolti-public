@@ -63,6 +63,41 @@ describe("JsonRepository — polls", () => {
     expect(await repo.castVote("missing", "water", "hash-c")).toEqual({ ok: false, reason: "not_found" });
     expect((await repo.getPollResults("poll-local-priority", "hash-c")).total).toBe(2);
   });
+
+  it("rejects votes on closed polls even if the end date is in the future", async () => {
+    await repo.updatePollStatus("poll-local-priority", "close");
+    expect(await repo.castVote("poll-local-priority", "water", "hash-a")).toEqual({
+      ok: false,
+      reason: "closed",
+    });
+    expect((await repo.getPollResults("poll-local-priority", "hash-a")).total).toBe(0);
+  });
+
+  it("rejects votes on archived polls", async () => {
+    await repo.updatePollStatus("poll-local-priority", "archive");
+    expect(await repo.castVote("poll-local-priority", "water", "hash-a")).toEqual({
+      ok: false,
+      reason: "not_found",
+    });
+    expect((await repo.getPollResults("poll-local-priority", "hash-a")).total).toBe(0);
+  });
+});
+
+describe("JsonRepository — accounts", () => {
+  it("never returns the password hash from updateUser", async () => {
+    const repo = memoryRepo();
+    const created = await repo.createUser({
+      email: "person@example.com",
+      displayName: "Person",
+      passwordHash: "scrypt:hash",
+    });
+    const updated = await repo.updateUser(created.id, { displayName: "Updated Person" });
+
+    expect(updated).not.toBeNull();
+    expect(updated?.displayName).toBe("Updated Person");
+    expect(Object.keys(updated ?? {})).not.toContain("passwordHash");
+    expect(JSON.stringify(updated)).not.toContain("scrypt:hash");
+  });
 });
 
 describe("JsonRepository — issues", () => {

@@ -88,13 +88,16 @@ test.describe("citizen actions", () => {
     const email = `poll-voter-${Date.now()}@example.com`;
     const password = "vote-test-123";
 
+    await page.goto("/");
+    // Browsers send Origin on state-changing fetches; the API deliberately
+    // rejects requests without it. Mirror the browser here.
     const registerResponse = await page.request.post("/api/auth/register", {
+      headers: { origin: new URL(page.url()).origin },
       data: { email, displayName: "Poll Voter", password },
     });
     expect(registerResponse.ok()).toBeTruthy();
 
     await page.goto("/polls");
-
     const firstPoll = page.locator("section").filter({ hasText: "आपके इलाके में सबसे ज़रूरी नागरिक मुद्दा" });
     await firstPoll.getByRole("group", { name: "पोल विकल्प" }).getByRole("button").first().click();
     await firstPoll.getByRole("button", { name: "वोट दें" }).click();
@@ -112,6 +115,9 @@ test.describe("citizen actions", () => {
     await page.goto("/assistant");
 
     const input = page.getByLabel("अपना सवाल");
+    // Hydration can briefly leave two copies of the input in the DOM; wait
+    // until the hydrated tree settles before typing.
+    await expect(input).toHaveCount(1);
     await input.fill("पानी की शिकायत कहाँ करें?");
     await page.getByRole("button", { name: "भेजें" }).click();
 

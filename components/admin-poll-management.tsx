@@ -238,7 +238,7 @@ function AllPollsTable({ locale }: { locale: "hi" | "en" }) {
         id: `req_opt_${i}`,
         label: { hi: opt, en: opt },
       })) || [],
-    });
+    }));
 
     return [...pollsNormalized, ...requestsNormalized];
   }, [polls, requests]);
@@ -396,7 +396,7 @@ function AddPollForm({ locale }: { locale: "hi" | "en" }) {
 
   const [isSaving, setIsSaving] = useState(false);
 
-  const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({});
+  const [formErrors, setFormErrors] = useState<{ nonValid?: boolean; errors: string[] }>({ errors: [] });
 
   function getErrorMessage(key: string): string {
     const hiErrors: { [key: string]: string } = {
@@ -450,7 +450,8 @@ function AddPollForm({ locale }: { locale: "hi" | "en" }) {
     const validation = validateForm();
     if (!validation.valid) {
       setFormErrors({
-        nonValid: validation.errors.join(" | "),
+        nonValid: true,
+        errors: validation.errors,
       });
       return;
     }
@@ -512,7 +513,7 @@ function AddPollForm({ locale }: { locale: "hi" | "en" }) {
           seoDescriptionHi: "",
           seoDescriptionEn: "",
         });
-        setFormErrors({});
+        setFormErrors({ errors: [] });
         window.dispatchEvent(new CustomEvent("poll-created"));
       }
     } catch (err) {
@@ -628,14 +629,22 @@ function AddPollForm({ locale }: { locale: "hi" | "en" }) {
             value={formData.startDate}
             onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
             type="date"
-            {formErrors.nonValid && formErrors.errors.includes("startDatePast") && <p className="text-[0.66rem] text-red-500 mt-1">{getErrorMessage("startDatePast")}</p>}
+            error={
+              formErrors.nonValid && formErrors.errors.includes("startDatePast")
+                ? getErrorMessage("startDatePast")
+                : undefined
+            }
           />
           <TextField
             label={locale === "hi" ? "समाप्ति तारीख" : "End Date"}
             value={formData.endDate}
             onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
             type="date"
-            {formErrors.nonValid && formErrors.errors.includes("endDateBeforeStart") && <p className="text-[0.66rem] text-red-500 mt-1">{getErrorMessage("endDateBeforeStart")}</p>}
+            error={
+              formErrors.nonValid && formErrors.errors.includes("endDateBeforeStart")
+                ? getErrorMessage("endDateBeforeStart")
+                : undefined
+            }
           />
         </div>
 

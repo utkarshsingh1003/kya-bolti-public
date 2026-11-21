@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { useState, useEffect } from "react";
 import type { ComponentProps, ReactNode } from "react";
 
 export function cn(...classes: (string | false | null | undefined)[]) {
@@ -7,7 +8,7 @@ export function cn(...classes: (string | false | null | undefined)[]) {
 
 const buttonVariants = {
   primary:
-    "bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-800 shadow-[0_10px_24px_-14px_rgba(222,80,13,0.9)]",
+    "bg-brand-600 text-white hover:bg-brand-700 active:bg-brand-700 active:bg-brand-800 shadow-[0_10px_24px_-14px_rgba(222,80,13,0.9)]",
   secondary: "bg-navy-900 text-white hover:bg-navy-800",
   outline: "border border-navy-200 bg-white text-navy-900 hover:border-navy-300 hover:bg-navy-50",
   ghost: "text-navy-800 hover:bg-navy-100/70",
@@ -147,7 +148,7 @@ export function Alert({
     info: "border-navy-200 bg-navy-50 text-navy-800",
     warning: "border-amber-200 bg-amber-50 text-amber-950",
     success: "border-teal-200 bg-teal-50 text-teal-900",
-    danger: "border-red-200 bg-red-50 text-red-900",
+    danger: "border-red-500 bg-red-100 text-red-800",
   } as const;
   return (
     <div role={tone === "danger" ? "alert" : "status"} className={cn("rounded-xl border px-4 py-3 text-sm leading-relaxed", tones[tone], className)}>
@@ -157,43 +158,29 @@ export function Alert({
   );
 }
 
-export function Stars({ rating, label }: { rating: number; label?: string }) {
-  return (
-    <span className="inline-flex items-center gap-0.5 text-gold-400" aria-label={label ?? `${rating} / 5`}>
-      {[1, 2, 3, 4, 5].map((value) => (
-        <span key={value} className={value <= rating ? "opacity-100" : "opacity-25"} aria-hidden>
-          ★
-        </span>
-      ))}
-    </span>
-  );
-}
-
-export function PageHeader({
-  eyebrow,
+export function NotificationToast({
+  tone = "info",
   title,
   description,
-  children,
+  autoDismiss = true,
 }: {
-  eyebrow?: string;
-  title: string;
+  tone?: "info" | "warning" | "success" | "danger";
+  title?: string;
   description?: string;
-  children?: ReactNode;
+  autoDismiss?: boolean;
 }) {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    if (visible && autoDismiss) {
+      const timer = setTimeout(() => setVisible(false), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [visible, autoDismiss]);
+  if (!visible) return null;
   return (
-    <div className="border-b border-navy-100 bg-white">
-      <div className="container-page py-8 sm:py-10">
-        {eyebrow ? (
-          <p className="mb-2 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-brand-700">{eyebrow}</p>
-        ) : null}
-        <h1 className="hindi max-w-4xl text-balance text-3xl font-extrabold tracking-tight text-navy-900 sm:text-4xl">
-          {title}
-        </h1>
-        {description ? (
-          <p className="mt-3 max-w-3xl text-sm leading-relaxed text-navy-600 sm:text-[0.95rem]">{description}</p>
-        ) : null}
-        {children ? <div className="mt-4">{children}</div> : null}
-      </div>
-    </div>
+    <Alert tone={tone}>
+      <p className="mb-1">{title ?? ""}</p>
+      {description ? <p>{description}</p> : null}
+    </Alert>
   );
 }

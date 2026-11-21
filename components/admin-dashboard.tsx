@@ -348,7 +348,22 @@ export function AdminDashboard() {
     void load();
   }
 
-  async function managePollAction(id: string, action: "publish" | "close" | "archive" | "feature" | "unfeature") {
+  async function managePollAction(id: string, action: "publish" | "close" | "archive" | "feature" | "unfeature" | "delete") {
+    if (action === "delete") {
+      if (!window.confirm("Are you sure you want to delete this poll?\n\nThis will also remove associated votes and options due to database cascade rules.")) {
+        return;
+      }
+      const response = await fetch("/api/admin/polls", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ id, action }),
+      });
+      const data = (await response.json()) as { ok?: boolean };
+      if (!response.ok || !data.ok) setStatus("error");
+      else setStatus("ready");
+      void load();
+      return;
+    }
     const response = await fetch("/api/admin/polls", {
       method: "PATCH",
       headers: { "content-type": "application/json" },
@@ -356,6 +371,7 @@ export function AdminDashboard() {
     });
     const data = (await response.json()) as { ok?: boolean };
     if (!response.ok || !data.ok) setStatus("error");
+    else setStatus("ready");
     void load();
   }
 
@@ -771,6 +787,9 @@ export function AdminDashboard() {
                           {locale === "hi" ? "प्रकाशित" : "Publish"}
                         </button>
                       ) : null}
+                      <button type="button" onClick={() => void managePollAction(poll.id, "delete")} className={buttonClass("outline", "sm", "ml-auto text-red-700")}>
+                        {locale === "hi" ? "मिटाएँ" : "Delete"}
+                      </button>
                     </div>
                   </li>
                 ))}
