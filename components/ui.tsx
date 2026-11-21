@@ -184,3 +184,67 @@ export function NotificationToast({
     </Alert>
   );
 }
+
+export function PageHeader({
+  eyebrow,
+  title,
+  description,
+  children,
+}: {
+  eyebrow?: string;
+  title: string;
+  description?: string;
+  children?: ReactNode;
+}) {
+  return (
+    <div className="border-b border-navy-100 bg-white">
+      <div className="container-page py-8 sm:py-10">
+        {eyebrow ? (
+          <p className="mb-2 text-[0.68rem] font-bold uppercase tracking-[0.18em] text-brand-700">{eyebrow}</p>
+        ) : null}
+        <h2 className="hindi text-balance text-2xl font-extrabold tracking-tight text-navy-900 sm:text-[1.7rem]">
+          {title}
+        </h2>
+        {description ? <p className="mt-2 text-sm leading-relaxed text-navy-600 sm:text-[0.95rem]">{description}</p> : null}
+        {children ? <div className="mt-4">{children}</div> : null}
+      </div>
+    </div>
+  );
+}
+
+export function Stars({ rating, label }: { rating: number; label?: string }) {
+  const filledStars = Math.round(rating);
+  const emptyStars = 5 - filledStars;
+  return (
+    <span className="flex items-center gap-1 text-yellow-500">
+      {[...Array(filledStars).keys()].map((_, i) => (
+        <span key={i} aria-hidden="true">
+          <svg
+            className="h-4 w-4"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.11-.87L12 2 9.11 8.37L5 9.24L1.83 21z"
+            />
+          </svg>
+        </span>
+      ))}
+      {[...Array(emptyStars).keys()].map((_, i) => (
+        <span key={i} aria-hidden="true">
+          <svg
+            className="h-4 w-4 opacity-30"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.11-.87L12 2 9.11 8.37L5 9.24L1.83 21z"
+            />
+          </svg>
+        </span>
+      ))}
+    </span>
+  );
+}
