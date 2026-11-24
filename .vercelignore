@@ -27,7 +27,6 @@ app/news/[slug]/
 components/admin-news.tsx
 components/admin-poll-management.tsx
 components/poll-approval-actions.tsx
-lib/news-service.ts
 lib/poll-duplicate.ts
 lib/poll-provider-types.ts
 lib/poll-validation.ts
